@@ -1,0 +1,56 @@
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 > #backgroundBox {
+  background-color: transparent;
+  background-image: none;
+  position: absolute;
+}
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 > #alignmentBox {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 #s-Text_1 {
+  position: absolute;
+  top: 533px;
+  left: 505px;
+  width: auto;
+  height: auto;
+  background-color: transparent;
+  background-image: none;
+  -webkit-transform: rotate(0deg);
+  -moz-transform: rotate(0deg);
+  transform: rotate(0deg);
+  box-shadow: none;
+  text-shadow: none;
+  font-size: 48.0pt;
+  font-family: Roboto-Light,Arial;
+}
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 #s-Text_1 .valign {
+  vertical-align: middle;
+  text-align: left;
+}
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 #s-Text_1 span {
+  color: #808080;
+  text-align: left;
+  text-decoration: none;
+  font-family: Roboto-Light,Arial;
+  font-size: 48.0pt;
+}
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 #s-Text_1 span#rtr-s-Text_1_0 {
+  color: #808080;
+  text-align: left;
+  text-decoration: none;
+  font-family: Roboto-Light,Arial;
+  font-size: 48.0pt;
+  line-height: 0px;
+}
+#jim-container .ui-page {
+  overflow-x: hidden;
+}
+.non_jim_mobile #simulation {
+  overflow-x: hidden;
+}
+#s-b0b1e562-d024-4322-b09f-6072c46b5616 > #loadMark {
+  width: 1px;
+  visibility: hidden;
+  display: none;
+}

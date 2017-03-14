@@ -1,0 +1,69 @@
+#jim-mobile {
+  width: 2030px;
+}
+#jim-mobile.landscape {
+  width: 1190px;
+  height: 2030px;
+}
+#jim-case {
+  width: 2030px;
+  height: 1190px;
+}
+#jim-container.portrait {
+  position: absolute;
+  top: 55px;
+  left: 55px;
+  width: 1920px;
+  height: 1080px;
+}
+#jim-container.landscape {
+  position: absolute;
+  top: 55px;
+  left: 55px;
+  width: 1080px;
+  height: 1920px;
+}
+#jim-case #jim-case-top-left {
+  width: 55px;
+  height: 55px;
+  background-size: 55px 55px;
+}
+#jim-case #jim-case-top-center {
+  width: 1920px;
+  height: 55px;
+  background-size: 1920px 55px;
+}
+#jim-case #jim-case-top-right {
+  width: 55px;
+  height: 55px;
+  background-size: 55px 55px;
+}
+#jim-case #jim-case-center-left {
+  width: 55px;
+  height: 1080px;
+  background-size: 55px 1080px;
+}
+#jim-case #jim-case-center-center {
+  width: 1920px;
+  height: 1080px;
+}
+#jim-case #jim-case-center-right {
+  width: 55px;
+  height: 1080px;
+  background-size: 55px 1080px;
+}
+#jim-case #jim-case-bottom-left {
+  width: 55px;
+  height: 55px;
+  background-size: 55px 55px;
+}
+#jim-case #jim-case-bottom-center {
+  width: 1920px;
+  height: 55px;
+  background-size: 1920px 55px;
+}
+#jim-case #jim-case-bottom-right {
+  width: 55px;
+  height: 55px;
+  background-size: 55px 55px;
+}
