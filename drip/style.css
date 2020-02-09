@@ -1,0 +1,100 @@
+body {
+    background-color: #ffe52c;
+    font-family:'Josefin Sans', sans-serif;
+    text-align: center;
+    color: #22313F;
+}
+
+p{
+    font-size: 120%;
+}
+
+h1 {
+    font-size: 250%
+}
+
+.logonav
+{
+    display:inline-block;
+    max-width: 50px;
+}
+.logotextnav
+{
+    display:inline-block;
+    margin-right:10px;
+    color: azure;
+}
+/* Add a black background color to the top navigation */
+.topnav {
+    background-color: deeppink;
+    overflow: hidden;
+}
+
+/* Style the links inside the navigation bar */
+.topnav a {
+    
+    align-content: center;
+    display: inline; 
+    color: #f2f2f2;
+    text-align: center;
+    padding: 20px 20px;
+    text-decoration: none;
+    font-size: 17px;
+    margin: 0px;     
+
+}
+
+/* Change the color of links on hover */
+.topnav a:hover {
+    background-color: lightpink;
+    color: black;
+}
+
+/* Hide the link that should open and close the topnav on small screens */
+.topnav .icon {
+    display: none;
+}
+
+/* When the screen is less than 600 pixels wide, hide all links, except for the first one ("Home"). Show the link that contains should open and close the topnav (.icon) */
+@media screen and (max-width: 600px) {
+  .topnav a:not(:first-child) {display: none;}
+  .topnav a.icon {
+    float: right;
+    display: inline-block;
+    position: absolute;
+      top: 0;
+      right: 0;
+  }
+}
+
+/* The "responsive" class is added to the topnav with JavaScript when the user clicks on the icon. This class makes the topnav look good on small screens (display the links vertically instead of horizontally) */
+@media screen and (max-width: 600px) {
+  .topnav.responsive {
+      position: relative; 
+    }
+
+  .topnav.responsive a {
+    display: block;
+  }
+}
+
+div.gallery {
+    margin: 5px;
+    border: 1px solid #ccc;
+    float: center;
+    width: 180px;
+}
+
+div.gallery:hover {
+    border: 1px solid #777;
+}
+
+div.gallery img {
+    width: 100%;
+    height: auto;
+}
+
+div.desc {
+    padding: 15px;
+    text-align: center;
+}
