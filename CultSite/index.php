@@ -19,27 +19,27 @@
     <p>-If you really want something. Multiply that desire by 10.</p>
 <H1>HOW DO I JOIN IN ON THE CONVERSATION?</H1>
     <p>It is good that you are willing to converse with like-minded individuals. To keep our talks from being overloading with SPAM and other nonsense we have a lock on the forum. </p>
-   <input id="numb">
-    <button type="button" onclick="myFunction()">This is my colour.</button>
-    <p id="demo"></p>
+   <form action="" method="POST">
+<label>Enter the proper colour:</label><input type="text" name="first_name"><br>
+<input type="submit" name="submit" value="submit"/>
+</form>
      <p>If you wish to converse, input the correct colour to continue. Write it in the code of curses.</p>
-   
-   
-   
-<script>
-function myFunction() {
-  // Get the value of the input field with id="numb"
-  let x = document.getElementById("numb").value;
-  // If x is Not a Number or less than one or greater than 10
-  let text;
-  if (x = "#d2003b") {
-    text = "You have found it, wonderfull, now your last objective is to put the reward where 'index' once was."
-  } else {
-    text = "The answer is wrong. Remember that colour exists on the internet in many ways and languages.";
-  }
-  document.getElementById("demo").innerHTML = text;
+
+<?php
+
+$first_name= $_POST['first_name'];
+
+$submitbutton= $_POST['submit'];
+
+if ($submitbutton){
+if ($first_name == '#d2003b') {
+             echo 'You have won. put "reward" where the void or "index" once was. End it properly, with a PerHaPs.';
 }
-</script>
+else {
+echo 'The colour is not: ' . $first_name . ' remember that colours come in more languages then one.';
+}
+}
+?>
 
 </body>
 </html>
