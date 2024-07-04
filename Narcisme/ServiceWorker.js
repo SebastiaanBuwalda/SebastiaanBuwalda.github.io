@@ -1,9 +1,9 @@
 const cacheName = "DefaultCompany-Narcisme-1.0";
 const contentToCache = [
     "Build/Narcisme.loader.js",
-    "Build/Narcisme.framework.js.br",
-    "Build/Narcisme.data.br",
-    "Build/Narcisme.wasm.br",
+    "Build/Narcisme.framework.js.unityweb",
+    "Build/Narcisme.data.unityweb",
+    "Build/Narcisme.wasm.unityweb",
     "TemplateData/style.css"
 
 ];
