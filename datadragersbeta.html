@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 :root {
   --cream: #FDF6EC;
@@ -398,6 +399,80 @@ body::before {
   font-weight: 600;
 }
 
+/* ---- EXPORT BAR ---- */
+.export-section {
+  padding: 0 48px 32px;
+}
+.export-card {
+  background: var(--warm-white);
+  border: 2px dashed #D5CBBA;
+  border-radius: var(--card-radius);
+  padding: 24px 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.export-card.hidden { display: none; }
+.export-label {
+  font-family: 'Caveat', cursive;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.export-btn {
+  padding: 9px 20px;
+  border: 1.5px solid #D5CBBA;
+  border-radius: var(--card-radius);
+  background: var(--cream);
+  font-family: 'Caveat', cursive;
+  font-size: 1.1rem;
+  color: var(--ink-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.export-btn:hover {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+.export-btn:active { transform: translateY(0); }
+.export-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.export-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'Caveat', cursive;
+  font-size: 1.15rem;
+  padding: 12px 28px;
+  border-radius: 40px;
+  z-index: 10000;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(44,36,22,0.2);
+}
+.export-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 960px) {
+  .export-section { padding-left: 24px; padding-right: 24px; }
+}
+
 /* Leaflet overrides */
 .leaflet-container { background: #F5EDDF; }
 .leaflet-control-attribution { font-size: 9px !important; opacity: 0.6; }
@@ -510,6 +585,38 @@ body::before {
     <div class="loading-overlay hidden" id="loadScatter"><div class="spinner"></div></div>
   </div>
 </div>
+
+<!-- ======= EXPORT BAR ======= -->
+<div class="export-section">
+  <div class="export-card hidden" id="exportBar">
+    <div class="export-label">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exporteer je verhaal
+    </div>
+    <button class="export-btn" onclick="exportCSV()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Data (CSV)
+    </button>
+    <button class="export-btn" onclick="exportCharts()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Grafieken (PNG)
+    </button>
+    <button class="export-btn" onclick="exportPostcard()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>
+      Ansichtkaart (PNG)
+    </button>
+    <button class="export-btn" onclick="exportFullReport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Volledig Rapport (PNG)
+    </button>
+    <button class="export-btn" onclick="exportJSON()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Ruwe Data (JSON)
+    </button>
+  </div>
+</div>
+
+<div class="export-toast" id="exportToast"></div>
 
 <!-- ======= POSTCARD ======= -->
 <div class="postcard-section">
@@ -650,6 +757,7 @@ async function exploreData() {
   renderScatter(type);
   renderPostcard(type);
   updateStory(type, start, end, timeBlock);
+  showExportBar();
   
   showLoading(false);
   btn.disabled = false;
@@ -1280,6 +1388,293 @@ function lerpColor(a, b, t) {
   const rg = Math.round(ag + (bg - ag) * t);
   const rb = Math.round(ab + (bb - ab) * t);
   return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1)}`;
+}
+
+// =====================================================
+// EXPORT FUNCTIONS
+// =====================================================
+function showExportBar() {
+  document.getElementById('exportBar').classList.remove('hidden');
+}
+
+function toast(msg) {
+  const el = document.getElementById('exportToast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function getExportPrefix() {
+  const type = currentData.type || 'data';
+  const start = currentData.start || '';
+  const end = currentData.end || '';
+  return `dear-utrecht_${LABELS_NL[type] || type}_${start}_${end}`.replace(/\s+/g, '-').toLowerCase();
+}
+
+// ---- CSV EXPORT ----
+function exportCSV() {
+  const obs = currentData.observations;
+  if (!obs || obs.length === 0) { toast('Geen data om te exporteren — klik eerst "Ontdek"'); return; }
+
+  const type = currentData.type;
+  const rows = [['Datum', 'Tijd', 'Waarde', 'Eenheid', 'Latitude', 'Longitude', 'Type']];
+
+  obs.forEach(o => {
+    const dt = new Date(o.datetime);
+    rows.push([
+      dt.toLocaleDateString('nl-NL'),
+      dt.toLocaleTimeString('nl-NL'),
+      o.value != null ? o.value.toFixed(2) : '',
+      UNITS[type] || '',
+      o.geolocation?.coordinates?.latitude || '',
+      o.geolocation?.coordinates?.longitude || '',
+      LABELS_NL[type]
+    ]);
+  });
+
+  const values = obs.filter(o => o.value != null).map(o => o.value);
+  rows.push([]);
+  rows.push(['--- Samenvatting ---']);
+  rows.push(['Totaal metingen', values.length]);
+  rows.push(['Gemiddelde', (values.reduce((a,b) => a + b, 0) / values.length).toFixed(2)]);
+  rows.push(['Minimum', Math.min(...values).toFixed(2)]);
+  rows.push(['Maximum', Math.max(...values).toFixed(2)]);
+  rows.push(['Periode', `${currentData.start} t/m ${currentData.end}`]);
+
+  const csv = rows.map(r => r.map(cell => `"${cell}"`).join(',')).join('\n');
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(blob, getExportPrefix() + '.csv');
+  toast('CSV geëxporteerd ✓');
+}
+
+// ---- CHART PNG EXPORT ----
+async function exportCharts() {
+  if (!timelineChart && !dayRhythmChart && !scatterChart) {
+    toast('Geen grafieken om te exporteren — klik eerst "Ontdek"');
+    return;
+  }
+  toast('Grafieken worden voorbereid...');
+
+  const charts = [
+    { chart: timelineChart, name: 'tijdlijn' },
+    { chart: dayRhythmChart, name: 'dagritme' },
+    { chart: scatterChart, name: 'verdeling' }
+  ];
+
+  const prefix = getExportPrefix();
+  let exported = 0;
+
+  for (const { chart, name } of charts) {
+    if (!chart) continue;
+    try {
+      const srcCanvas = chart.canvas;
+      const exportCanvas = document.createElement('canvas');
+      const pad = 40;
+      exportCanvas.width = srcCanvas.width + pad * 2;
+      exportCanvas.height = srcCanvas.height + pad * 2 + 48;
+      const ectx = exportCanvas.getContext('2d');
+
+      ectx.fillStyle = '#FFF9F0';
+      ectx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+      ectx.font = '600 28px Caveat, cursive';
+      ectx.fillStyle = '#2C2416';
+      const titles = { 'tijdlijn': 'Het Verhaal door de Tijd', 'dagritme': 'Het Ritme van de Dag', 'verdeling': 'Elke Meting Telt' };
+      ectx.fillText(titles[name] || name, pad, pad + 24);
+
+      ectx.font = '300 14px DM Sans, sans-serif';
+      ectx.fillStyle = '#8B7D6B';
+      ectx.fillText(`${LABELS_NL[currentData.type]} — ${currentData.start} t/m ${currentData.end} — Dear Utrecht`, pad, pad + 44);
+
+      ectx.drawImage(srcCanvas, pad, pad + 56);
+
+      ectx.strokeStyle = '#E5DDD0';
+      ectx.lineWidth = 2;
+      ectx.strokeRect(1, 1, exportCanvas.width - 2, exportCanvas.height - 2);
+
+      const blob = await new Promise(r => exportCanvas.toBlob(r, 'image/png'));
+      downloadBlob(blob, `${prefix}_${name}.png`);
+      exported++;
+    } catch(e) { console.warn('Chart export error:', name, e); }
+  }
+  toast(`${exported} grafiek${exported !== 1 ? 'en' : ''} geëxporteerd ✓`);
+}
+
+// ---- POSTCARD PNG EXPORT ----
+async function exportPostcard() {
+  const postcard = document.getElementById('postcard');
+  if (postcard.style.display === 'none') {
+    toast('Geen ansichtkaart — klik eerst "Ontdek"');
+    return;
+  }
+  toast('Ansichtkaart wordt vastgelegd...');
+
+  try {
+    const canvas = await html2canvas(postcard, {
+      backgroundColor: '#FFF9F0',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    downloadBlob(blob, getExportPrefix() + '_ansichtkaart.png');
+    toast('Ansichtkaart geëxporteerd ✓');
+  } catch(e) {
+    console.error('Postcard export error:', e);
+    toast('Oeps, export mislukt — probeer opnieuw');
+  }
+}
+
+// ---- FULL REPORT PNG EXPORT ----
+async function exportFullReport() {
+  const obs = currentData.observations;
+  if (!obs || obs.length === 0) {
+    toast('Geen data voor rapport — klik eerst "Ontdek"');
+    return;
+  }
+  toast('Rapport wordt samengesteld...');
+
+  try {
+    const type = currentData.type;
+    const label = LABELS_NL[type];
+    const unit = UNITS[type];
+    const values = obs.filter(o => o.value != null).map(o => o.value);
+    const avg = values.reduce((a,b) => a + b, 0) / values.length;
+    const mn = Math.min(...values);
+    const mx = Math.max(...values);
+
+    const W = 1200, H = 1600;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#FDF6EC';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#D5CBBA';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(24, 24, W - 48, H - 48);
+
+    ctx.font = '700 64px Caveat, cursive';
+    ctx.fillStyle = '#2C2416';
+    ctx.fillText('Dear Utrecht', 60, 100);
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#E8927C';
+    ctx.lineWidth = 2;
+    for (let x = 60; x < W - 60; x += 2) {
+      const y = 120 + Math.sin(x / 15) * 4;
+      x === 60 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.font = '400 26px Caveat, cursive';
+    ctx.fillStyle = '#8B7D6B';
+    ctx.fillText(`${label} — ${currentData.start} t/m ${currentData.end}`, 60, 160);
+
+    const stats = [
+      { label: 'Gemiddeld', value: avg.toFixed(1) + unit, color: '#E8927C' },
+      { label: 'Laagste', value: mn.toFixed(1) + unit, color: '#7BAFD4' },
+      { label: 'Hoogste', value: mx.toFixed(1) + unit, color: '#8FBB7C' },
+      { label: 'Metingen', value: String(values.length), color: '#F2C94C' }
+    ];
+    const boxW = (W - 120 - 48) / 4;
+    stats.forEach((s, i) => {
+      const x = 60 + i * (boxW + 16), y = 190;
+      ctx.fillStyle = '#FFF9F0';
+      ctx.fillRect(x, y, boxW, 90);
+      ctx.strokeStyle = '#E5DDD0';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x, y, boxW, 90);
+      ctx.font = '700 36px Caveat, cursive';
+      ctx.fillStyle = s.color;
+      ctx.fillText(s.value, x + 16, y + 42);
+      ctx.font = '400 20px Caveat, cursive';
+      ctx.fillStyle = '#8B7D6B';
+      ctx.fillText(s.label, x + 16, y + 72);
+    });
+
+    const chartList = [
+      { chart: timelineChart, label: 'Het Verhaal door de Tijd', y: 310 },
+      { chart: dayRhythmChart, label: 'Het Ritme van de Dag', y: 700 },
+      { chart: scatterChart, label: 'Elke Meting Telt', y: 1090 }
+    ];
+    for (const { chart, label: cl, y } of chartList) {
+      ctx.font = '600 30px Caveat, cursive';
+      ctx.fillStyle = '#2C2416';
+      ctx.fillText(cl, 60, y);
+      if (chart) {
+        const cc = chart.canvas;
+        const cw = W - 120;
+        const ch = Math.min(340, (cc.height / cc.width) * cw);
+        ctx.drawImage(cc, 60, y + 16, cw, ch);
+      } else {
+        ctx.font = '400 18px DM Sans, sans-serif';
+        ctx.fillStyle = '#8B7D6B';
+        ctx.fillText('Geen data beschikbaar', 60, y + 40);
+      }
+    }
+
+    ctx.font = '400 18px Caveat, cursive';
+    ctx.fillStyle = '#B8A9D4';
+    ctx.fillText('Dear Utrecht — Data = creatief materiaal ♡', 60, H - 50);
+
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    downloadBlob(blob, getExportPrefix() + '_rapport.png');
+    toast('Rapport geëxporteerd ✓');
+  } catch(e) {
+    console.error('Report export error:', e);
+    toast('Export mislukt — probeer opnieuw');
+  }
+}
+
+// ---- JSON EXPORT ----
+function exportJSON() {
+  const obs = currentData.observations;
+  if (!obs || obs.length === 0) { toast('Geen data — klik eerst "Ontdek"'); return; }
+
+  const values = obs.filter(o => o.value != null).map(o => o.value);
+  const exportData = {
+    meta: {
+      tool: 'Dear Utrecht',
+      city: 'Utrecht',
+      measurement: LABELS_NL[currentData.type],
+      unit: UNITS[currentData.type],
+      period_start: currentData.start,
+      period_end: currentData.end,
+      time_block: currentData.timeBlock || 'Alle dagdelen',
+      total_observations: obs.length,
+      exported_at: new Date().toISOString()
+    },
+    summary: {
+      average: +(values.reduce((a,b) => a + b, 0) / values.length).toFixed(2),
+      minimum: +Math.min(...values).toFixed(2),
+      maximum: +Math.max(...values).toFixed(2),
+      count: values.length
+    },
+    observations: obs.map(o => ({
+      value: o.value,
+      datetime: o.datetime,
+      latitude: o.geolocation?.coordinates?.latitude,
+      longitude: o.geolocation?.coordinates?.longitude
+    }))
+  };
+
+  const json = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  downloadBlob(blob, getExportPrefix() + '.json');
+  toast('JSON geëxporteerd ✓');
 }
 
 // =====================================================
