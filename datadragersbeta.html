@@ -133,6 +133,51 @@ body::before {
 .control-group select:focus,
 .control-group input:focus { border-color: var(--rose); }
 
+.range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.range-wrap input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: linear-gradient(to right, #E5DDD0, #E8927C);
+  border-radius: 3px;
+  outline: none;
+  border: none;
+  padding: 0;
+}
+.range-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--warm-white);
+  border: 2px solid var(--rose);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(44,36,22,0.15);
+  transition: transform 0.15s;
+}
+.range-wrap input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.range-wrap input[type="range"]::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--warm-white);
+  border: 2px solid var(--rose);
+  cursor: pointer;
+}
+.range-val {
+  font-family: 'Caveat', cursive;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--rose-deep);
+  min-width: 52px;
+  text-align: right;
+}
+
 .btn-explore {
   padding: 10px 28px;
   background: var(--ink);
@@ -399,6 +444,141 @@ body::before {
   font-weight: 600;
 }
 
+/* ---- DATA SCANNER ---- */
+.scanner-section {
+  margin: 0 48px 20px;
+}
+.scanner-card {
+  background: var(--warm-white);
+  border: 1.5px solid #E5DDD0;
+  border-radius: var(--card-radius);
+  padding: 20px 24px;
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+}
+.scanner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.scanner-title {
+  font-family: 'Caveat', cursive;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-scan {
+  padding: 7px 18px;
+  background: var(--cream);
+  color: var(--ink-light);
+  border: 1.5px solid #D5CBBA;
+  border-radius: var(--card-radius);
+  font-family: 'Caveat', cursive;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-scan:hover {
+  background: var(--lavender);
+  color: #fff;
+  border-color: var(--lavender);
+}
+.btn-scan:disabled { opacity: 0.5; cursor: wait; }
+.scanner-hint {
+  font-size: 0.82rem;
+  color: var(--pencil);
+  font-style: italic;
+  margin-bottom: 14px;
+}
+.scanner-grid {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  min-height: 80px;
+}
+.scanner-empty {
+  font-family: 'Caveat', cursive;
+  font-size: 1.1rem;
+  color: var(--pencil);
+  padding: 16px 0;
+}
+.scan-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  position: relative;
+}
+.scan-bar:hover { transform: translateY(-2px); }
+.scan-bar-fill {
+  width: 28px;
+  min-height: 4px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.scan-bar-label {
+  font-family: 'Caveat', cursive;
+  font-size: 0.72rem;
+  color: var(--pencil);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  height: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scan-bar-count {
+  font-family: 'Caveat', cursive;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-light);
+}
+.scan-bar.active .scan-bar-fill {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 1px;
+}
+.scan-bar.capped .scan-bar-count {
+  color: var(--rose-deep);
+  font-weight: 700;
+}
+.scan-bar.capped .scan-bar-fill {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.25) 3px,
+    rgba(255,255,255,0.25) 6px
+  ) !important;
+}
+.scanner-summary {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #E5DDD0;
+  font-family: 'Caveat', cursive;
+  font-size: 1.05rem;
+  color: var(--ink-light);
+  line-height: 1.5;
+}
+.scanner-summary strong { color: var(--rose-deep); }
+.scanner-summary .click-hint {
+  color: var(--lavender-deep);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 960px) {
+  .scanner-section { margin-left: 24px; margin-right: 24px; }
+  .scan-bar-fill { width: 20px; }
+  .scan-bar-label { font-size: 0.65rem; height: 36px; }
+}
+
 /* ---- EXPORT BAR ---- */
 .export-section {
   padding: 0 48px 32px;
@@ -522,9 +702,34 @@ body::before {
       <option value="Night">Nacht</option>
     </select>
   </div>
+  <div class="control-group">
+    <label>🔢 Max datapunten (totaal)</label>
+    <div class="range-wrap">
+      <input type="range" id="obsLimit" min="50" max="5000" step="50" value="500" oninput="document.getElementById('obsLimitVal').textContent = this.value">
+      <span class="range-val" id="obsLimitVal">500</span>
+    </div>
+  </div>
   <button class="btn-explore" id="btnExplore" onclick="exploreData()">
     Ontdek →
   </button>
+</div>
+
+<!-- ======= DATA SCANNER ======= -->
+<div class="scanner-section">
+  <div class="scanner-card">
+    <div class="scanner-header">
+      <div class="scanner-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Data Verkenner
+      </div>
+      <button class="btn-scan" id="btnScan" onclick="scanDataAvailability()">Scan beschikbaarheid</button>
+    </div>
+    <div class="scanner-hint">Ontdek wanneer er data beschikbaar is voor de gekozen meting — klik op een maand om die periode te selecteren</div>
+    <div class="scanner-grid" id="scannerGrid">
+      <div class="scanner-empty">Klik "Scan beschikbaarheid" om te ontdekken waar de data leeft →</div>
+    </div>
+    <div class="scanner-summary" id="scannerSummary"></div>
+  </div>
 </div>
 
 <!-- ======= STORY BAR ======= -->
@@ -698,7 +903,7 @@ async function fetchJSON(url) {
   }
 }
 
-function buildObsURL(type, start, end, limit=200) {
+function buildObsURL(type, start, end, limit=500) {
   let u = `${API}/observations?city=${CITY}&observation_type=${encodeURIComponent(type)}&observations_limit=${limit}`;
   if (start) u += `&observation_datetime_start=${start}T00:00:00`;
   if (end) u += `&observation_datetime_end=${end}T23:59:59`;
@@ -727,29 +932,71 @@ async function exploreData() {
   const start = document.getElementById('dateStart').value;
   const end = document.getElementById('dateEnd').value;
   const timeBlock = document.getElementById('timeBlock').value;
+  const limit = parseInt(document.getElementById('obsLimit').value);
   const btn = document.getElementById('btnExplore');
   
   btn.disabled = true;
   btn.textContent = 'Laden...';
   showLoading(true);
   
-  // Fetch in parallel
-  const [observations, aggregated, hexAgg] = await Promise.all([
-    fetchJSON(buildObsURL(type, start, end, 500)),
+  // Split date range into monthly chunks to avoid API truncation
+  const monthChunks = getMonthChunks(start, end);
+  const perChunkLimit = Math.max(200, Math.ceil(limit / Math.max(monthChunks.length, 1)));
+  
+  // Show progress
+  btn.textContent = `0 / ${monthChunks.length} maanden...`;
+  
+  // Fetch observations per month, plus aggregated data in parallel
+  let allObservations = [];
+  const batchSize = 4; // fetch 4 months at a time
+  
+  for (let i = 0; i < monthChunks.length; i += batchSize) {
+    const batch = monthChunks.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(ch => fetchJSON(buildObsURL(type, ch.start, ch.end, perChunkLimit)))
+    );
+    results.forEach(r => {
+      if (r && Array.isArray(r)) allObservations = allObservations.concat(r);
+    });
+    btn.textContent = `${Math.min(i + batchSize, monthChunks.length)} / ${monthChunks.length} maanden...`;
+  }
+  
+  // Fetch aggregated data (these don't have the same limit issue)
+  const [aggregated, hexAgg] = await Promise.all([
     fetchJSON(buildAggURL(start, end, timeBlock)),
     fetchJSON(buildHexAggURL(start, end, timeBlock))
   ]);
   
+  // Deduplicate by datetime+value+coords (API may return overlaps at chunk boundaries)
+  const seen = new Set();
+  allObservations = allObservations.filter(o => {
+    const key = `${o.datetime}_${o.value}_${o.geolocation?.coordinates?.latitude}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  
+  // Sort by datetime
+  allObservations.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  
+  // If user set a limit and we have more, take an even spread
+  if (allObservations.length > limit) {
+    const step = allObservations.length / limit;
+    const sampled = [];
+    for (let i = 0; i < limit; i++) {
+      sampled.push(allObservations[Math.floor(i * step)]);
+    }
+    allObservations = sampled;
+  }
+  
   currentData = {
-    observations: observations || [],
+    observations: allObservations,
     aggregated: aggregated || [],
     hexAgg: hexAgg || [],
     type, start, end, timeBlock
   };
   
-  console.log('Observations:', currentData.observations.length);
-  console.log('Aggregated:', currentData.aggregated);
-  console.log('HexAgg:', currentData.hexAgg);
+  console.log('Observations:', currentData.observations.length, 'from', monthChunks.length, 'months');
   
   renderMap(type);
   renderTimeline(type);
@@ -762,6 +1009,28 @@ async function exploreData() {
   showLoading(false);
   btn.disabled = false;
   btn.textContent = 'Ontdek →';
+}
+
+// Split a date range into per-month chunks
+function getMonthChunks(startStr, endStr) {
+  const chunks = [];
+  let d = new Date(startStr);
+  const endDate = new Date(endStr);
+  
+  while (d <= endDate) {
+    const chunkStart = new Date(Math.max(d.getTime(), new Date(startStr).getTime()));
+    const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0); // last day of month
+    const chunkEnd = new Date(Math.min(monthEnd.getTime(), endDate.getTime()));
+    
+    chunks.push({
+      start: chunkStart.toISOString().split('T')[0],
+      end: chunkEnd.toISOString().split('T')[0]
+    });
+    
+    // Move to 1st of next month
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  }
+  return chunks;
 }
 
 function showLoading(show) {
@@ -1341,8 +1610,15 @@ function updateStory(type, start, end, timeBlock) {
   if (count > 0) {
     const values = obs.filter(o => o.value != null).map(o => o.value);
     const avg = values.reduce((a,b)=>a+b,0) / values.length;
+    
+    // Show actual data coverage
+    const dates = obs.filter(o => o.datetime).map(o => new Date(o.datetime)).sort((a,b) => a - b);
+    const actualStart = dates[0].toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+    const actualEnd = dates[dates.length - 1].toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+    
     story += `Je kijkt naar <strong>${label}</strong> van ${startNL} tot ${endNL} (${block}). `;
-    story += `${count} datapunten gevonden, gemiddeld ${avg.toFixed(1)}${UNITS[type]}. `;
+    story += `<strong>${count}</strong> datapunten gevonden, gemiddeld <strong>${avg.toFixed(1)}${UNITS[type]}</strong>. `;
+    story += `Data loopt van ${actualStart} t/m ${actualEnd}. `;
     story += getStoryPrompt(type, values);
   } else {
     story += `Geen data gevonden voor deze combinatie. Probeer een andere periode of meting — elk verhaal wacht op de juiste vraag.`;
@@ -1388,6 +1664,155 @@ function lerpColor(a, b, t) {
   const rg = Math.round(ag + (bg - ag) * t);
   const rb = Math.round(ab + (bb - ab) * t);
   return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1)}`;
+}
+
+// =====================================================
+// DATA SCANNER
+// =====================================================
+async function scanDataAvailability() {
+  const type = document.getElementById('obsType').value;
+  const btn = document.getElementById('btnScan');
+  const grid = document.getElementById('scannerGrid');
+  const summary = document.getElementById('scannerSummary');
+  
+  btn.disabled = true;
+  btn.textContent = 'Scannen...';
+  grid.innerHTML = '<div class="scanner-empty">Even geduld, de data wordt verkend...</div>';
+  summary.innerHTML = '';
+
+  // Scan from 2022 to now in 3-month chunks to find range, then drill into months
+  const now = new Date();
+  const scanStart = new Date('2022-01-01');
+  
+  // First: broad scan per quarter to find where data exists
+  const quarters = [];
+  let d = new Date(scanStart);
+  while (d < now) {
+    const qStart = d.toISOString().split('T')[0];
+    const qEnd = new Date(d.getFullYear(), d.getMonth() + 3, 0).toISOString().split('T')[0];
+    quarters.push({ start: qStart, end: qEnd });
+    d = new Date(d.getFullYear(), d.getMonth() + 3, 1);
+  }
+
+  // Fetch small samples per quarter
+  const quarterResults = await Promise.all(
+    quarters.map(q => fetchJSON(buildObsURL(type, q.start, q.end, 5)))
+  );
+
+  // Find the range with data
+  let firstWithData = null;
+  let lastWithData = null;
+  quarterResults.forEach((r, i) => {
+    if (r && r.length > 0) {
+      if (firstWithData === null) firstWithData = i;
+      lastWithData = i;
+    }
+  });
+
+  if (firstWithData === null) {
+    grid.innerHTML = '<div class="scanner-empty">Geen data gevonden voor deze meting. Probeer een ander type.</div>';
+    btn.disabled = false;
+    btn.textContent = 'Scan beschikbaarheid';
+    return;
+  }
+
+  // Now do monthly scan within the range (±1 quarter buffer)
+  const rangeStart = new Date(quarters[Math.max(0, firstWithData - 1)].start);
+  const rangeEnd = new Date(quarters[Math.min(quarters.length - 1, lastWithData + 1)].end);
+
+  const months = [];
+  let m = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  while (m <= rangeEnd) {
+    const mStart = m.toISOString().split('T')[0];
+    const mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0).toISOString().split('T')[0];
+    const label = m.toLocaleDateString('nl-NL', { month: 'short', year: '2-digit' });
+    months.push({ start: mStart, end: mEnd, label, date: new Date(m) });
+    m = new Date(m.getFullYear(), m.getMonth() + 1, 1);
+  }
+
+  // Fetch count per month (request high limit to detect API cap)
+  const monthResults = await Promise.all(
+    months.map(mo => fetchJSON(buildObsURL(type, mo.start, mo.end, 2000)))
+  );
+
+  const monthData = months.map((mo, i) => ({
+    ...mo,
+    count: (monthResults[i] && Array.isArray(monthResults[i])) ? monthResults[i].length : 0
+  }));
+
+  // Detect API cap: if multiple months hit the same round number, that's likely the limit
+  const nonZeroCounts = monthData.map(m => m.count).filter(c => c > 0);
+  const maxReturned = Math.max(...nonZeroCounts, 0);
+  const countAtMax = nonZeroCounts.filter(c => c === maxReturned).length;
+  const apiCap = (countAtMax >= 2 && maxReturned >= 100) ? maxReturned : null;
+
+  // Mark capped months
+  monthData.forEach(mo => {
+    mo.capped = apiCap !== null && mo.count === apiCap;
+  });
+
+  const maxCount = Math.max(...monthData.map(m => m.count), 1);
+  const totalData = monthData.reduce((s, m) => s + m.count, 0);
+  const monthsWithData = monthData.filter(m => m.count > 0);
+  const cappedMonths = monthData.filter(m => m.capped);
+
+  // Color scale
+  const pal = COLORS[type];
+
+  // Render bars
+  grid.innerHTML = monthData.map((mo, i) => {
+    const h = mo.count > 0 ? Math.max(8, (mo.count / maxCount) * 80) : 4;
+    const t = mo.count > 0 ? mo.count / maxCount : 0;
+    const color = mo.count > 0 ? lerpColor(pal.light, pal.dark, t) : '#E5DDD0';
+    const cappedStyle = mo.capped ? 'border-top: 3px dashed ' + pal.dark : '';
+    const countLabel = mo.count > 0 ? (mo.capped ? mo.count + '+' : String(mo.count)) : '';
+    return `
+      <div class="scan-bar${mo.capped ? ' capped' : ''}" onclick="selectScanMonth('${mo.start}', '${mo.end}')" title="${mo.label}: ${countLabel} metingen${mo.capped ? ' (API-limiet bereikt, er is waarschijnlijk meer)' : ''}">
+        <div class="scan-bar-count">${countLabel}</div>
+        <div class="scan-bar-fill" style="height:${h}px; background:${color}; ${cappedStyle}"></div>
+        <div class="scan-bar-label">${mo.label}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Summary
+  if (monthsWithData.length > 0) {
+    const first = monthsWithData[0];
+    const last = monthsWithData[monthsWithData.length - 1];
+    const peak = monthData.reduce((a, b) => a.count > b.count ? a : b);
+    
+    let capNote = '';
+    if (apiCap !== null && cappedMonths.length > 0) {
+      capNote = `<br><span class="click-hint">⚠ De API geeft maximaal ~${apiCap.toLocaleString('nl-NL')} metingen per request terug. 
+        Maanden met "${apiCap}+" bevatten waarschijnlijk méér data dan getoond. 
+        Tip: filter op dagdeel of kortere periodes om alles te zien.</span>`;
+    }
+    
+    summary.innerHTML = `
+      <strong>${LABELS_NL[type]}</strong> heeft minstens <strong>${totalData.toLocaleString('nl-NL')}</strong> metingen 
+      van <strong>${first.label}</strong> tot <strong>${last.label}</strong>. 
+      Piekmaand: <strong>${peak.label}</strong> met ${peak.capped ? 'minstens ' : ''}${peak.count.toLocaleString('nl-NL')} metingen.
+      <br><span class="click-hint">↑ Klik op een maand om die periode te selecteren als start- en einddatum</span>
+      ${capNote}
+    `;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Scan beschikbaarheid';
+}
+
+function selectScanMonth(start, end) {
+  document.getElementById('dateStart').value = start;
+  document.getElementById('dateEnd').value = end;
+  
+  // Highlight selected bar
+  document.querySelectorAll('.scan-bar').forEach(b => b.classList.remove('active'));
+  event.currentTarget.closest('.scan-bar')?.classList.add('active');
+  
+  // Flash the explore button
+  const btn = document.getElementById('btnExplore');
+  btn.style.background = '#D4654E';
+  setTimeout(() => btn.style.background = '', 600);
 }
 
 // =====================================================
