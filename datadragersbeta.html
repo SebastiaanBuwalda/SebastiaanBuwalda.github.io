@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dear Utrecht — Verhalen in Stadsdata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+:root {
+  --cream: #FDF6EC;
+  --warm-white: #FFF9F0;
+  --ink: #2C2416;
+  --ink-light: #5C4F3A;
+  --pencil: #8B7D6B;
+  --rose: #E8927C;
+  --rose-deep: #D4654E;
+  --sky: #7BAFD4;
+  --sky-deep: #4A8AB5;
+  --moss: #8FBB7C;
+  --moss-deep: #5A9A4A;
+  --sun: #F2C94C;
+  --sun-deep: #E0A820;
+  --lavender: #B8A9D4;
+  --lavender-deep: #8B72B8;
+  --coral: #F4A582;
+  --paper-shadow: rgba(44, 36, 22, 0.08);
+  --card-radius: 3px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- TEXTURE OVERLAY ---- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ---- HEADER ---- */
+.header {
+  padding: 40px 48px 20px;
+  position: relative;
+}
+.header h1 {
+  font-family: 'Caveat', cursive;
+  font-size: 3.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.header h1 span { color: var(--rose); }
+.header .subtitle {
+  font-family: 'Caveat', cursive;
+  font-size: 1.35rem;
+  color: var(--pencil);
+  margin-top: 4px;
+  font-style: italic;
+}
+.header .dear-data-note {
+  font-family: 'Caveat', cursive;
+  font-size: 1rem;
+  color: var(--lavender-deep);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.header .squiggle {
+  display: block;
+  margin-top: 12px;
+  height: 8px;
+}
+
+/* ---- CONTROLS ---- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 48px;
+  margin-bottom: 28px;
+  align-items: flex-end;
+}
+.control-group {
+  flex: 1;
+  min-width: 180px;
+}
+.control-group label {
+  display: block;
+  font-family: 'Caveat', cursive;
+  font-size: 1.15rem;
+  color: var(--pencil);
+  margin-bottom: 4px;
+}
+.control-group select,
+.control-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #D5CBBA;
+  border-radius: var(--card-radius);
+  background: var(--warm-white);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.control-group select { 
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B7D6B' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.control-group select:focus,
+.control-group input:focus { border-color: var(--rose); }
+
+.btn-explore {
+  padding: 10px 28px;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: var(--card-radius);
+  font-family: 'Caveat', cursive;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+.btn-explore:hover { background: var(--rose-deep); transform: translateY(-1px); }
+.btn-explore:disabled { background: var(--pencil); cursor: wait; }
+
+/* ---- STORY PROMPT ---- */
+.story-bar {
+  margin: 0 48px 28px;
+  padding: 20px 28px;
+  background: var(--warm-white);
+  border: 1.5px dashed var(--coral);
+  border-radius: var(--card-radius);
+  font-family: 'Caveat', cursive;
+  font-size: 1.25rem;
+  color: var(--ink-light);
+  line-height: 1.5;
+  position: relative;
+}
+.story-bar::before {
+  content: '✎';
+  position: absolute;
+  top: -14px;
+  left: 20px;
+  background: var(--cream);
+  padding: 0 6px;
+  font-size: 1.1rem;
+  color: var(--rose);
+}
+.story-bar .story-label {
+  font-weight: 700;
+  color: var(--rose-deep);
+}
+
+/* ---- DASHBOARD GRID ---- */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 24px;
+  padding: 0 48px 48px;
+}
+
+.card {
+  background: var(--warm-white);
+  border: 1.5px solid #E5DDD0;
+  border-radius: var(--card-radius);
+  padding: 24px;
+  position: relative;
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+  transition: box-shadow 0.2s;
+}
+.card:hover { box-shadow: 5px 5px 0 var(--paper-shadow); }
+
+.card-title {
+  font-family: 'Caveat', cursive;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--pencil);
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.card-map { grid-column: 1 / 2; grid-row: 1 / 2; min-height: 440px; }
+.card-timeline { grid-column: 2 / 2; grid-row: 1 / 2; min-height: 440px; }
+.card-dayrhythm { grid-column: 1 / 2; grid-row: 2 / 2; min-height: 360px; }
+.card-scatter { grid-column: 2 / 2; grid-row: 2 / 2; min-height: 360px; }
+
+#map { 
+  height: 340px; 
+  border-radius: 2px; 
+  border: 1px solid #E5DDD0;
+  z-index: 1;
+}
+
+.chart-wrap { position: relative; width: 100%; height: 300px; }
+.chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+/* ---- POSTCARD SECTION ---- */
+.postcard-section {
+  padding: 0 48px 60px;
+}
+.postcard {
+  background: var(--warm-white);
+  border: 2px solid #D5CBBA;
+  border-radius: var(--card-radius);
+  padding: 36px 40px;
+  max-width: 720px;
+  position: relative;
+  box-shadow: 4px 4px 0 var(--paper-shadow);
+}
+.postcard::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 52px;
+  height: 52px;
+  border: 2px solid var(--coral);
+  border-radius: 2px;
+  opacity: 0.4;
+}
+.postcard-title {
+  font-family: 'Caveat', cursive;
+  font-size: 2rem;
+  color: var(--rose-deep);
+  margin-bottom: 12px;
+}
+.postcard-body {
+  font-family: 'Caveat', cursive;
+  font-size: 1.2rem;
+  color: var(--ink-light);
+  line-height: 1.7;
+}
+.postcard-stats {
+  display: flex;
+  gap: 32px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.postcard-stat {
+  text-align: center;
+}
+.postcard-stat .num {
+  font-family: 'Caveat', cursive;
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.postcard-stat .lbl {
+  font-family: 'Caveat', cursive;
+  font-size: 0.95rem;
+  color: var(--pencil);
+}
+.stat-temp .num { color: var(--rose-deep); }
+.stat-hum .num { color: var(--sky-deep); }
+.stat-comfort .num { color: var(--moss-deep); }
+.stat-discomfort .num { color: var(--sun-deep); }
+
+/* ---- LOADING ---- */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(253, 246, 236, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: var(--card-radius);
+}
+.loading-overlay.hidden { display: none; }
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #E5DDD0;
+  border-top-color: var(--rose);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- LEGEND ---- */
+.map-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--pencil);
+  font-family: 'Caveat', cursive;
+  font-size: 0.95rem;
+}
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* ---- EMPTY STATE ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 260px;
+  color: var(--pencil);
+  font-family: 'Caveat', cursive;
+  font-size: 1.3rem;
+  text-align: center;
+  line-height: 1.6;
+}
+.empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 960px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .card-map, .card-timeline, .card-dayrhythm, .card-scatter {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .header { padding: 28px 24px 16px; }
+  .controls, .dashboard, .postcard-section, .story-bar { 
+    padding-left: 24px; 
+    padding-right: 24px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .header h1 { font-size: 2.6rem; }
+}
+
+/* ---- HEXAGON TOOLTIP ---- */
+.hex-tooltip {
+  font-family: 'Caveat', cursive;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.hex-tooltip strong { color: var(--rose-deep); }
+
+/* ---- TAB SELECTOR ---- */
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 14px;
+  border-bottom: 1.5px solid #E5DDD0;
+  padding-bottom: 0;
+}
+.tab-btn {
+  font-family: 'Caveat', cursive;
+  font-size: 1.05rem;
+  color: var(--pencil);
+  background: none;
+  border: none;
+  padding: 6px 14px 8px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active {
+  color: var(--rose-deep);
+  border-bottom-color: var(--rose-deep);
+  font-weight: 600;
+}
+
+/* Leaflet overrides */
+.leaflet-container { background: #F5EDDF; }
+.leaflet-control-attribution { font-size: 9px !important; opacity: 0.6; }
+</style>
+</head>
+<body>
+
+<!-- ======= HEADER ======= -->
+<div class="header">
+  <h1>Dear <span>Utrecht</span></h1>
+  <div class="subtitle">Verhalen ontdekken in stadsdata — geïnspireerd door Dear Data</div>
+  <div class="dear-data-note">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Data = creatief materiaal. Speel, ontdek, en vind jouw verhaal.
+  </div>
+  <svg class="squiggle" viewBox="0 0 600 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 4 Q15 0 30 4 Q45 8 60 4 Q75 0 90 4 Q105 8 120 4 Q135 0 150 4 Q165 8 180 4 Q195 0 210 4 Q225 8 240 4 Q255 0 270 4 Q285 8 300 4 Q315 0 330 4 Q345 8 360 4 Q375 0 390 4 Q405 8 420 4 Q435 0 450 4 Q465 8 480 4 Q495 0 510 4 Q525 8 540 4 Q555 0 570 4 Q585 8 600 4" stroke="#E8927C" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<!-- ======= CONTROLS ======= -->
+<div class="controls">
+  <div class="control-group">
+    <label>📊 Wat wil je meten?</label>
+    <select id="obsType">
+      <option value="Temperature">Temperatuur (°C)</option>
+      <option value="Relative Humidity">Luchtvochtigheid (%)</option>
+      <option value="Thermal Comfort">Thermisch Comfort</option>
+      <option value="Thermal Discomfort">Thermisch Discomfort</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>📅 Startdatum</label>
+    <input type="date" id="dateStart" value="2024-06-01">
+  </div>
+  <div class="control-group">
+    <label>📅 Einddatum</label>
+    <input type="date" id="dateEnd" value="2024-08-31">
+  </div>
+  <div class="control-group">
+    <label>🕐 Dagdeel</label>
+    <select id="timeBlock">
+      <option value="">Alle dagdelen</option>
+      <option value="Morning">Ochtend</option>
+      <option value="Afternoon">Middag</option>
+      <option value="Evening">Avond</option>
+      <option value="Night">Nacht</option>
+    </select>
+  </div>
+  <button class="btn-explore" id="btnExplore" onclick="exploreData()">
+    Ontdek →
+  </button>
+</div>
+
+<!-- ======= STORY BAR ======= -->
+<div class="story-bar" id="storyBar">
+  <span class="story-label">Je data-verhaal: </span>
+  Kies je parameters en klik op "Ontdek" om de verborgen patronen van Utrecht te onthullen. Wat fluistert de stad je toe?
+</div>
+
+<!-- ======= DASHBOARD ======= -->
+<div class="dashboard">
+
+  <!-- MAP CARD -->
+  <div class="card card-map">
+    <div class="card-title">🗺 De Kaart van Utrecht</div>
+    <div class="card-desc">Iedere hexagoon is een buurt — kleuren vertellen het verhaal</div>
+    <div id="map"></div>
+    <div class="map-legend" id="mapLegend"></div>
+    <div class="loading-overlay hidden" id="loadMap"><div class="spinner"></div></div>
+  </div>
+
+  <!-- TIMELINE CARD -->
+  <div class="card card-timeline">
+    <div class="card-title">📈 Het Verhaal door de Tijd</div>
+    <div class="card-desc">Hoe verandert de meting over de gekozen periode?</div>
+    <div class="chart-wrap"><canvas id="chartTimeline"></canvas></div>
+    <div class="empty-state" id="emptyTimeline">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
+      Klik "Ontdek" om het tijdverhaal te zien
+    </div>
+    <div class="loading-overlay hidden" id="loadTimeline"><div class="spinner"></div></div>
+  </div>
+
+  <!-- DAY RHYTHM CARD -->
+  <div class="card card-dayrhythm">
+    <div class="card-title">🌅 Het Ritme van de Dag</div>
+    <div class="card-desc">Ochtend, middag, avond, nacht — elk dagdeel voelt anders</div>
+    <div class="chart-wrap"><canvas id="chartDayRhythm"></canvas></div>
+    <div class="empty-state" id="emptyDayRhythm">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Welk dagdeel vertelt het mooiste verhaal?
+    </div>
+    <div class="loading-overlay hidden" id="loadDayRhythm"><div class="spinner"></div></div>
+  </div>
+
+  <!-- SCATTER / DISTRIBUTION CARD -->
+  <div class="card card-scatter">
+    <div class="card-title">✦ Elke Meting Telt</div>
+    <div class="card-desc">Zoals Dear Data: elke stip is een moment, een plek, een ervaring</div>
+    <div class="tab-bar" id="scatterTabs">
+      <button class="tab-btn active" data-tab="dots" onclick="switchScatterTab('dots')">Stippen</button>
+      <button class="tab-btn" data-tab="histo" onclick="switchScatterTab('histo')">Verdeling</button>
+    </div>
+    <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
+    <div class="empty-state" id="emptyScatter">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="14" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="5" cy="6" r="1.5"/><circle cx="19" cy="16" r="1.5"/></svg>
+      Elk datapunt is uniek — ontdek ze
+    </div>
+    <div class="loading-overlay hidden" id="loadScatter"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ======= POSTCARD ======= -->
+<div class="postcard-section">
+  <div class="postcard" id="postcard" style="display:none;">
+    <div class="postcard-title" id="postcardTitle">Jouw Data-Ansichtkaart</div>
+    <div class="postcard-body" id="postcardBody"></div>
+    <div class="postcard-stats" id="postcardStats"></div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// STATE
+// =====================================================
+const API = 'https://platform-urbanreleaf.iccs.gr/api/public';
+const CITY = 'Utrecht';
+
+let map, hexLayer, timelineChart, dayRhythmChart, scatterChart;
+let currentData = { observations: [], hexagons: [], aggregated: [], hexAgg: [] };
+let currentTab = 'dots';
+
+// Color palettes (Dear Data-inspired warm tones)
+const COLORS = {
+  'Temperature':        { main: '#E8927C', light: '#F4C4B8', dark: '#D4654E', bg: 'rgba(232,146,124,0.15)' },
+  'Relative Humidity':  { main: '#7BAFD4', light: '#B8D8EC', dark: '#4A8AB5', bg: 'rgba(123,175,212,0.15)' },
+  'Thermal Comfort':    { main: '#8FBB7C', light: '#C4DDB8', dark: '#5A9A4A', bg: 'rgba(143,187,124,0.15)' },
+  'Thermal Discomfort': { main: '#F2C94C', light: '#F8E4A0', dark: '#E0A820', bg: 'rgba(242,201,76,0.15)' }
+};
+
+const LABELS_NL = {
+  'Temperature': 'Temperatuur',
+  'Relative Humidity': 'Luchtvochtigheid',
+  'Thermal Comfort': 'Thermisch Comfort',
+  'Thermal Discomfort': 'Thermisch Discomfort',
+  'Morning': 'Ochtend',
+  'Afternoon': 'Middag',
+  'Evening': 'Avond',
+  'Night': 'Nacht'
+};
+
+const UNITS = {
+  'Temperature': '°C',
+  'Relative Humidity': '%',
+  'Thermal Comfort': '',
+  'Thermal Discomfort': ''
+};
+
+// =====================================================
+// INIT MAP
+// =====================================================
+function initMap() {
+  map = L.map('map', {
+    center: [52.0907, 5.1214],
+    zoom: 13,
+    zoomControl: false
+  });
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  
+  // Warm, muted tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OSM & CARTO',
+    maxZoom: 18
+  }).addTo(map);
+  
+  hexLayer = L.layerGroup().addTo(map);
+}
+
+// =====================================================
+// API FETCH HELPERS
+// =====================================================
+async function fetchJSON(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    console.warn('Fetch error:', url, e);
+    return null;
+  }
+}
+
+function buildObsURL(type, start, end, limit=200) {
+  let u = `${API}/observations?city=${CITY}&observation_type=${encodeURIComponent(type)}&observations_limit=${limit}`;
+  if (start) u += `&observation_datetime_start=${start}T00:00:00`;
+  if (end) u += `&observation_datetime_end=${end}T23:59:59`;
+  return u;
+}
+
+function buildAggURL(start, end, timeBlock) {
+  let u = `${API}/aggregatedserver/${CITY}/aggregateddata?observation_datetime_start=${start}T00:00:00`;
+  if (end) u += `&observation_datetime_end=${end}T23:59:59`;
+  if (timeBlock) u += `&observation_time_block=${timeBlock}`;
+  return u;
+}
+
+function buildHexAggURL(start, end, timeBlock) {
+  let u = `${API}/aggregatedserver/${CITY}/hexagons/aggregateddata?observation_datetime_start=${start}T00:00:00`;
+  if (end) u += `&observation_datetime_end=${end}T23:59:59`;
+  if (timeBlock) u += `&observation_time_block=${timeBlock}`;
+  return u;
+}
+
+// =====================================================
+// MAIN EXPLORE
+// =====================================================
+async function exploreData() {
+  const type = document.getElementById('obsType').value;
+  const start = document.getElementById('dateStart').value;
+  const end = document.getElementById('dateEnd').value;
+  const timeBlock = document.getElementById('timeBlock').value;
+  const btn = document.getElementById('btnExplore');
+  
+  btn.disabled = true;
+  btn.textContent = 'Laden...';
+  showLoading(true);
+  
+  // Fetch in parallel
+  const [observations, aggregated, hexAgg] = await Promise.all([
+    fetchJSON(buildObsURL(type, start, end, 500)),
+    fetchJSON(buildAggURL(start, end, timeBlock)),
+    fetchJSON(buildHexAggURL(start, end, timeBlock))
+  ]);
+  
+  currentData = {
+    observations: observations || [],
+    aggregated: aggregated || [],
+    hexAgg: hexAgg || [],
+    type, start, end, timeBlock
+  };
+  
+  console.log('Observations:', currentData.observations.length);
+  console.log('Aggregated:', currentData.aggregated);
+  console.log('HexAgg:', currentData.hexAgg);
+  
+  renderMap(type);
+  renderTimeline(type);
+  renderDayRhythm(type);
+  renderScatter(type);
+  renderPostcard(type);
+  updateStory(type, start, end, timeBlock);
+  
+  showLoading(false);
+  btn.disabled = false;
+  btn.textContent = 'Ontdek →';
+}
+
+function showLoading(show) {
+  ['loadMap','loadTimeline','loadDayRhythm','loadScatter'].forEach(id => {
+    document.getElementById(id).classList.toggle('hidden', !show);
+  });
+}
+
+// =====================================================
+// RENDER MAP
+// =====================================================
+function renderMap(type) {
+  hexLayer.clearLayers();
+  const pal = COLORS[type];
+  const hexData = currentData.hexAgg;
+  
+  if (!hexData || !Array.isArray(hexData) || hexData.length === 0) {
+    // Try to plot observations as dots instead
+    plotObservationDots(type);
+    return;
+  }
+  
+  // Find the key that has the data
+  let values = [];
+  hexData.forEach(h => {
+    if (h.aggregated_data) {
+      const propKey = Object.keys(h.aggregated_data).find(k => k.toLowerCase().includes(type.toLowerCase().split(' ')[0]));
+      if (propKey && h.aggregated_data[propKey]?.average != null) {
+        values.push(h.aggregated_data[propKey].average);
+      }
+    }
+  });
+  
+  if (values.length === 0) {
+    plotObservationDots(type);
+    return;
+  }
+  
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  
+  hexData.forEach(h => {
+    if (!h.hexagon?.coordinates) return;
+    const coords = h.hexagon.coordinates;
+    
+    let polyCoords;
+    if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+      polyCoords = coords[0].map(c => [c[1], c[0]]);
+    } else if (Array.isArray(coords[0])) {
+      polyCoords = coords.map(c => [c[1], c[0]]);
+    } else return;
+    
+    let val = null;
+    if (h.aggregated_data) {
+      const propKey = Object.keys(h.aggregated_data).find(k => k.toLowerCase().includes(type.toLowerCase().split(' ')[0]));
+      if (propKey) val = h.aggregated_data[propKey]?.average;
+    }
+    
+    if (val == null) return;
+    
+    const t = max > min ? (val - min) / (max - min) : 0.5;
+    const color = lerpColor(pal.light, pal.dark, t);
+    
+    const poly = L.polygon(polyCoords, {
+      color: pal.dark,
+      weight: 1.5,
+      fillColor: color,
+      fillOpacity: 0.65
+    }).addTo(hexLayer);
+    
+    const label = LABELS_NL[type];
+    const unit = UNITS[type];
+    poly.bindPopup(`
+      <div class="hex-tooltip">
+        <strong>${label}</strong><br>
+        Gemiddeld: <strong>${val.toFixed(1)}${unit}</strong>
+      </div>
+    `);
+  });
+  
+  buildLegend(pal, min, max, type);
+}
+
+function plotObservationDots(type) {
+  const obs = currentData.observations;
+  const pal = COLORS[type];
+  if (!obs || obs.length === 0) return;
+  
+  const values = obs.filter(o => o.value != null).map(o => o.value);
+  if (values.length === 0) return;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  
+  obs.forEach(o => {
+    if (!o.geolocation?.coordinates) return;
+    const lat = o.geolocation.coordinates.latitude;
+    const lng = o.geolocation.coordinates.longitude;
+    if (!lat || !lng) return;
+    
+    const t = max > min ? (o.value - min) / (max - min) : 0.5;
+    const color = lerpColor(pal.light, pal.dark, t);
+    
+    L.circleMarker([lat, lng], {
+      radius: 7,
+      fillColor: color,
+      fillOpacity: 0.75,
+      color: pal.dark,
+      weight: 1.5
+    }).addTo(hexLayer).bindPopup(`
+      <div class="hex-tooltip">
+        <strong>${LABELS_NL[type]}</strong><br>
+        Waarde: <strong>${o.value.toFixed(1)}${UNITS[type]}</strong><br>
+        ${new Date(o.datetime).toLocaleString('nl-NL')}
+      </div>
+    `);
+  });
+  
+  buildLegend(pal, min, max, type);
+}
+
+function buildLegend(pal, min, max, type) {
+  const legend = document.getElementById('mapLegend');
+  const unit = UNITS[type];
+  legend.innerHTML = `
+    <div class="legend-item"><div class="legend-dot" style="background:${pal.light}"></div>${min.toFixed(1)}${unit}</div>
+    <div class="legend-item"><div class="legend-dot" style="background:${lerpColor(pal.light, pal.dark, 0.5)}"></div>${((min+max)/2).toFixed(1)}${unit}</div>
+    <div class="legend-item"><div class="legend-dot" style="background:${pal.dark}"></div>${max.toFixed(1)}${unit}</div>
+  `;
+}
+
+// =====================================================
+// RENDER TIMELINE
+// =====================================================
+function renderTimeline(type) {
+  const obs = currentData.observations;
+  document.getElementById('emptyTimeline').style.display = (!obs || obs.length === 0) ? 'flex' : 'none';
+  if (!obs || obs.length === 0) return;
+  
+  const pal = COLORS[type];
+  
+  // Group by date, compute daily averages
+  const byDate = {};
+  obs.forEach(o => {
+    if (o.value == null) return;
+    const d = o.datetime.split('T')[0];
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(o.value);
+  });
+  
+  const sorted = Object.keys(byDate).sort();
+  const data = sorted.map(d => ({
+    x: d,
+    y: byDate[d].reduce((a,b) => a+b, 0) / byDate[d].length,
+    count: byDate[d].length
+  }));
+  
+  if (timelineChart) timelineChart.destroy();
+  
+  const ctx = document.getElementById('chartTimeline').getContext('2d');
+  timelineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: LABELS_NL[type],
+        data: data,
+        borderColor: pal.main,
+        backgroundColor: pal.bg,
+        borderWidth: 2.5,
+        pointRadius: data.length > 60 ? 0 : 4,
+        pointBackgroundColor: pal.dark,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 1.5,
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#FFF9F0',
+          titleColor: '#2C2416',
+          bodyColor: '#5C4F3A',
+          borderColor: '#E5DDD0',
+          borderWidth: 1,
+          titleFont: { family: 'Caveat', size: 16 },
+          bodyFont: { family: 'DM Sans', size: 12 },
+          callbacks: {
+            label: ctx => `${ctx.parsed.y.toFixed(1)}${UNITS[type]} (${data[ctx.dataIndex]?.count || '?'} metingen)`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'category',
+          ticks: { 
+            maxTicksLimit: 10, 
+            font: { family: 'Caveat', size: 13 },
+            color: '#8B7D6B'
+          },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { 
+            font: { family: 'Caveat', size: 13 },
+            color: '#8B7D6B',
+            callback: v => v + UNITS[type]
+          },
+          grid: { color: 'rgba(213,203,186,0.4)', drawBorder: false }
+        }
+      }
+    }
+  });
+}
+
+// =====================================================
+// RENDER DAY RHYTHM
+// =====================================================
+async function renderDayRhythm(type) {
+  document.getElementById('emptyDayRhythm').style.display = 'none';
+  
+  const start = currentData.start;
+  const end = currentData.end;
+  const pal = COLORS[type];
+  
+  // Fetch all 4 time blocks
+  const blocks = ['Morning', 'Afternoon', 'Evening', 'Night'];
+  const blockColors = ['#F2C94C', '#E8927C', '#B8A9D4', '#4A6FA5'];
+  const blockBg = ['rgba(242,201,76,0.25)', 'rgba(232,146,124,0.25)', 'rgba(184,169,212,0.25)', 'rgba(74,111,165,0.25)'];
+  
+  const results = await Promise.all(
+    blocks.map(b => fetchJSON(buildAggURL(start, end, b)))
+  );
+  
+  // Extract the relevant property averages
+  const propName = type.toLowerCase().replace(' ', '_');
+  const values = [];
+  
+  results.forEach((r, i) => {
+    let val = null;
+    if (r && Array.isArray(r) && r.length > 0) {
+      // Search through aggregated data
+      r.forEach(item => {
+        if (item.aggregated_data) {
+          const key = Object.keys(item.aggregated_data).find(k => 
+            k.toLowerCase().includes(type.toLowerCase().split(' ')[0].toLowerCase())
+          );
+          if (key && item.aggregated_data[key]?.average != null) {
+            if (val === null) val = [];
+            val.push(item.aggregated_data[key].average);
+          }
+        }
+      });
+    } else if (r && !Array.isArray(r) && r.aggregated_data) {
+      const key = Object.keys(r.aggregated_data).find(k => 
+        k.toLowerCase().includes(type.toLowerCase().split(' ')[0].toLowerCase())
+      );
+      if (key) val = [r.aggregated_data[key]?.average];
+    }
+    
+    const avg = val && val.length > 0 ? val.reduce((a,b)=>a+b,0)/val.length : null;
+    values.push(avg);
+  });
+  
+  if (values.every(v => v === null)) {
+    // Fallback: compute from observations by grouping on time-of-day
+    const obs = currentData.observations;
+    if (obs && obs.length > 0) {
+      const buckets = { Morning: [], Afternoon: [], Evening: [], Night: [] };
+      obs.forEach(o => {
+        if (o.value == null || !o.datetime) return;
+        const h = new Date(o.datetime).getHours();
+        if (h >= 6 && h < 12) buckets.Morning.push(o.value);
+        else if (h >= 12 && h < 18) buckets.Afternoon.push(o.value);
+        else if (h >= 18 && h < 22) buckets.Evening.push(o.value);
+        else buckets.Night.push(o.value);
+      });
+      blocks.forEach((b, i) => {
+        if (buckets[b].length > 0) {
+          values[i] = buckets[b].reduce((a,c)=>a+c,0) / buckets[b].length;
+        }
+      });
+    }
+  }
+  
+  if (values.every(v => v === null)) {
+    document.getElementById('emptyDayRhythm').style.display = 'flex';
+    return;
+  }
+  
+  if (dayRhythmChart) dayRhythmChart.destroy();
+  
+  const ctx = document.getElementById('chartDayRhythm').getContext('2d');
+  dayRhythmChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: blocks.map(b => LABELS_NL[b]),
+      datasets: [{
+        data: values.map(v => v != null ? +v.toFixed(2) : 0),
+        backgroundColor: blockColors.map((c,i) => values[i] != null ? c : '#E5DDD0'),
+        borderColor: blockColors.map((c,i) => values[i] != null ? c : '#D5CBBA'),
+        borderWidth: 2,
+        borderRadius: 4,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#FFF9F0',
+          titleColor: '#2C2416',
+          bodyColor: '#5C4F3A',
+          borderColor: '#E5DDD0',
+          borderWidth: 1,
+          titleFont: { family: 'Caveat', size: 16 },
+          bodyFont: { family: 'DM Sans', size: 12 },
+          callbacks: {
+            label: ctx => `${ctx.parsed.y.toFixed(1)}${UNITS[type]}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { family: 'Caveat', size: 15 }, color: '#5C4F3A' },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { 
+            font: { family: 'Caveat', size: 13 }, color: '#8B7D6B',
+            callback: v => v + UNITS[type]
+          },
+          grid: { color: 'rgba(213,203,186,0.4)', drawBorder: false }
+        }
+      }
+    }
+  });
+}
+
+// =====================================================
+// RENDER SCATTER / DISTRIBUTION
+// =====================================================
+function renderScatter(type) {
+  const obs = currentData.observations;
+  document.getElementById('emptyScatter').style.display = (!obs || obs.length === 0) ? 'flex' : 'none';
+  if (!obs || obs.length === 0) return;
+  
+  if (currentTab === 'dots') renderDots(type, obs);
+  else renderHistogram(type, obs);
+}
+
+function renderDots(type, obs) {
+  const pal = COLORS[type];
+  const data = obs
+    .filter(o => o.value != null && o.datetime)
+    .map(o => ({
+      x: new Date(o.datetime).getTime(),
+      y: o.value
+    }));
+  
+  if (scatterChart) scatterChart.destroy();
+  const ctx = document.getElementById('chartScatter').getContext('2d');
+  
+  scatterChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: LABELS_NL[type],
+        data: data,
+        backgroundColor: pal.main + '88',
+        borderColor: pal.dark,
+        borderWidth: 1,
+        pointRadius: Math.max(2, Math.min(6, 300 / data.length)),
+        pointHoverRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#FFF9F0',
+          titleColor: '#2C2416',
+          bodyColor: '#5C4F3A',
+          borderColor: '#E5DDD0',
+          borderWidth: 1,
+          callbacks: {
+            title: ctx => new Date(ctx[0].parsed.x).toLocaleString('nl-NL'),
+            label: ctx => `${ctx.parsed.y.toFixed(1)}${UNITS[type]}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          ticks: {
+            font: { family: 'Caveat', size: 12 },
+            color: '#8B7D6B',
+            callback: v => new Date(v).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }),
+            maxTicksLimit: 8
+          },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { 
+            font: { family: 'Caveat', size: 13 }, color: '#8B7D6B',
+            callback: v => v + UNITS[type]
+          },
+          grid: { color: 'rgba(213,203,186,0.4)', drawBorder: false }
+        }
+      }
+    }
+  });
+}
+
+function renderHistogram(type, obs) {
+  const pal = COLORS[type];
+  const values = obs.filter(o => o.value != null).map(o => o.value);
+  if (values.length === 0) return;
+  
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const bins = 20;
+  const step = (max - min) / bins || 1;
+  const counts = new Array(bins).fill(0);
+  const labels = [];
+  
+  for (let i = 0; i < bins; i++) {
+    labels.push((min + i * step).toFixed(1));
+    values.forEach(v => {
+      const idx = Math.min(Math.floor((v - min) / step), bins - 1);
+      if (idx === i) counts[i]++;
+    });
+  }
+  
+  if (scatterChart) scatterChart.destroy();
+  const ctx = document.getElementById('chartScatter').getContext('2d');
+  
+  scatterChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: values.map((_, i) => {
+          const t = i / bins;
+          return lerpColor(pal.light, pal.dark, t);
+        }).slice(0, bins),
+        borderColor: pal.dark,
+        borderWidth: 1,
+        borderRadius: 2,
+        barPercentage: 1,
+        categoryPercentage: 0.95
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#FFF9F0',
+          titleColor: '#2C2416',
+          bodyColor: '#5C4F3A',
+          borderColor: '#E5DDD0',
+          borderWidth: 1,
+          callbacks: {
+            title: ctx => `${ctx[0].label}${UNITS[type]}`,
+            label: ctx => `${ctx.parsed.y} metingen`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { 
+            font: { family: 'Caveat', size: 12 }, color: '#8B7D6B',
+            maxTicksLimit: 10,
+            callback: (v, i) => labels[i] + UNITS[type]
+          },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { font: { family: 'Caveat', size: 13 }, color: '#8B7D6B' },
+          grid: { color: 'rgba(213,203,186,0.4)', drawBorder: false }
+        }
+      }
+    }
+  });
+}
+
+function switchScatterTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('#scatterTabs .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  if (currentData.observations?.length > 0) {
+    renderScatter(currentData.type);
+  }
+}
+
+// =====================================================
+// POSTCARD
+// =====================================================
+function renderPostcard(type) {
+  const obs = currentData.observations;
+  if (!obs || obs.length === 0) {
+    document.getElementById('postcard').style.display = 'none';
+    return;
+  }
+  
+  document.getElementById('postcard').style.display = 'block';
+  
+  const values = obs.filter(o => o.value != null).map(o => o.value);
+  const avg = values.reduce((a,b) => a+b, 0) / values.length;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const unit = UNITS[type];
+  const label = LABELS_NL[type];
+  
+  const startNL = new Date(currentData.start).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+  const endNL = new Date(currentData.end).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+  
+  document.getElementById('postcardTitle').textContent = `Ansichtkaart: ${label} in Utrecht`;
+  document.getElementById('postcardBody').innerHTML = `
+    Lieve data-vriend,<br><br>
+    Tussen ${startNL} en ${endNL} heb ik ${values.length} metingen van ${label.toLowerCase()} 
+    verzameld in Utrecht. Het gemiddelde was <strong>${avg.toFixed(1)}${unit}</strong>, 
+    met een laagste meting van <strong>${min.toFixed(1)}${unit}</strong> en een hoogste van 
+    <strong>${max.toFixed(1)}${unit}</strong>. 
+    ${getPoetry(type, avg, min, max)}
+    <br><br>Met warme groeten uit Utrecht ♡
+  `;
+  
+  document.getElementById('postcardStats').innerHTML = `
+    <div class="postcard-stat stat-temp"><div class="num">${avg.toFixed(1)}${unit}</div><div class="lbl">Gemiddeld</div></div>
+    <div class="postcard-stat stat-hum"><div class="num">${min.toFixed(1)}${unit}</div><div class="lbl">Laagste</div></div>
+    <div class="postcard-stat stat-comfort"><div class="num">${max.toFixed(1)}${unit}</div><div class="lbl">Hoogste</div></div>
+    <div class="postcard-stat stat-discomfort"><div class="num">${values.length}</div><div class="lbl">Metingen</div></div>
+  `;
+}
+
+function getPoetry(type, avg, min, max) {
+  const range = max - min;
+  if (type === 'Temperature') {
+    if (avg > 25) return 'Utrecht baadde in warmte — het soort dagen waarop de grachten glinsteren en iedereen buiten eet.';
+    if (avg > 15) return 'Aangenaam weer — Utrecht op zijn best, fietsweer met een licht briesje.';
+    if (avg > 5) return 'De kou kroop door de straten, maar Utrecht bleef leven — dampende koffie en warme lampen.';
+    return 'Winterkou omhulde de stad als een deken van stilte.';
+  }
+  if (type === 'Relative Humidity') {
+    if (avg > 80) return 'De lucht was zwaar van vocht — een stad die ademt als een levend organisme.';
+    if (avg > 60) return 'Comfortabel vochtig — het groene hart van Nederland liet zich voelen.';
+    return 'Droge lucht, helder zicht — zelfs de Dom leek dichterbij.';
+  }
+  if (type === 'Thermal Comfort') return 'Het comfort-verhaal van de stad ontvouwt zich in stilte, voelbaar in elke stap.';
+  return 'Discomfort vertelt ook een verhaal — waar de stad schuurt, ontstaat verandering.';
+}
+
+// =====================================================
+// STORY BAR
+// =====================================================
+function updateStory(type, start, end, timeBlock) {
+  const obs = currentData.observations;
+  const label = LABELS_NL[type];
+  const block = timeBlock ? LABELS_NL[timeBlock].toLowerCase() : 'alle dagdelen';
+  const count = obs?.length || 0;
+  
+  const startNL = new Date(start).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
+  const endNL = new Date(end).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
+  
+  let story = `<span class="story-label">Je data-verhaal: </span>`;
+  if (count > 0) {
+    const values = obs.filter(o => o.value != null).map(o => o.value);
+    const avg = values.reduce((a,b)=>a+b,0) / values.length;
+    story += `Je kijkt naar <strong>${label}</strong> van ${startNL} tot ${endNL} (${block}). `;
+    story += `${count} datapunten gevonden, gemiddeld ${avg.toFixed(1)}${UNITS[type]}. `;
+    story += getStoryPrompt(type, values);
+  } else {
+    story += `Geen data gevonden voor deze combinatie. Probeer een andere periode of meting — elk verhaal wacht op de juiste vraag.`;
+  }
+  
+  document.getElementById('storyBar').innerHTML = story;
+}
+
+function getStoryPrompt(type, values) {
+  const prompts = {
+    'Temperature': [
+      'Vraag jezelf: op welke dagen was het het warmst, en wat deed je toen?',
+      'Vergelijk ochtend en avond — voelt de stad anders als de zon zakt?',
+      'Welke buurten zijn hitte-eilanden? De kaart vertelt het je.'
+    ],
+    'Relative Humidity': [
+      'Vocht vertelt over groen, over water, over hoe de stad ademt.',
+      'Vergelijk met temperatuur — wanneer voelt het klam, wanneer fris?',
+      'Kijk naar de verdeling — zijn er uitschieters die een verhaal vertellen?'
+    ],
+    'Thermal Comfort': [
+      'Comfort is subjectief, maar data maakt het zichtbaar. Waar voelt het prettig?',
+      'Vergelijk dagdelen — is de ochtend aangenamer dan de middag?'
+    ],
+    'Thermal Discomfort': [
+      'Discomfort is een signaal. Waar en wanneer schuurt het, en wat kunnen we doen?',
+      'Zoek de patronen — is discomfort gebonden aan tijd of plek?'
+    ]
+  };
+  const opts = prompts[type] || prompts['Temperature'];
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+// =====================================================
+// UTILITIES
+// =====================================================
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.replace('#',''), 16);
+  const bh = parseInt(b.replace('#',''), 16);
+  const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+  const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+  const rr = Math.round(ar + (br - ar) * t);
+  const rg = Math.round(ag + (bg - ag) * t);
+  const rb = Math.round(ab + (bb - ab) * t);
+  return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1)}`;
+}
+
+// =====================================================
+// INIT
+// =====================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  
+  // Set default dates to a reasonable recent range
+  const now = new Date();
+  const threeMonthsAgo = new Date(now);
+  threeMonthsAgo.setMonth(now.getMonth() - 3);
+  
+  document.getElementById('dateEnd').value = now.toISOString().split('T')[0];
+  document.getElementById('dateStart').value = threeMonthsAgo.toISOString().split('T')[0];
+});
+</script>
+
+</body>
+</html>
