@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Grensloos Vriendenboekjesmachine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #44276D;
+      --purple-dark: #2d1a4a;
+      --purple-mid: #6b4a9a;
+      --green: #81BD5D;
+      --green-dark: #5e9940;
+      --light-green: #dde8cc;
+      --light-green-2: #c8d9b0;
+      --white: #ffffff;
+      --cream: #fafaf5;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: var(--green);
+      touch-action: manipulation;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Screen container ── */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 32px 80px;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.97) translateY(12px);
+      transition: opacity 0.38s ease, transform 0.38s ease;
+      overflow-y: auto;
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: scale(1) translateY(0);
+    }
+    .screen.exit {
+      opacity: 0;
+      transform: scale(1.03) translateY(-12px);
+      pointer-events: none;
+    }
+
+    /* ── Hoek (corner bracket, bottom-right) ── */
+    .hoek {
+      position: fixed;
+      bottom: 0; right: 0;
+      width: 72px; height: 156px;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .hoek-v {
+      position: absolute;
+      right: 0; top: 0;
+      width: 32px; height: 100%;
+      background: var(--purple);
+    }
+    .hoek-h {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 32px;
+      background: var(--purple);
+    }
+
+    /* ── Logo ── */
+    .wordmark {
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      user-select: none;
+    }
+    .wordmark-box {
+      background: var(--purple);
+      color: var(--green);
+      padding: 5px 14px 6px;
+      display: inline-block;
+    }
+    .wordmark-plain {
+      color: var(--purple);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 18px 42px;
+      border: none;
+      border-radius: 100px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: clamp(15px, 2.8vw, 21px);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      text-decoration: none;
+    }
+    .btn-purple {
+      background: var(--purple);
+      color: var(--green);
+      box-shadow: 0 6px 0 var(--purple-dark);
+    }
+    .btn-purple:hover  { box-shadow: 0 4px 0 var(--purple-dark); transform: translateY(2px); }
+    .btn-purple:active { box-shadow: 0 1px 0 var(--purple-dark); transform: translateY(5px); }
+    .btn-green {
+      background: var(--light-green);
+      color: var(--purple);
+      box-shadow: 0 6px 0 var(--light-green-2);
+    }
+    .btn-green:hover  { box-shadow: 0 4px 0 var(--light-green-2); transform: translateY(2px); }
+    .btn-green:active { box-shadow: 0 1px 0 var(--light-green-2); transform: translateY(5px); }
+
+    /* ════════════════════════════════
+       WELCOME SCREEN
+    ════════════════════════════════ */
+    #screen-welcome {
+      background: var(--green);
+      gap: 0;
+    }
+    .welcome-logo { margin-bottom: 32px; font-size: clamp(32px, 7vw, 52px); }
+    .welcome-circle {
+      width: clamp(160px, 28vw, 220px);
+      height: clamp(160px, 28vw, 220px);
+      border-radius: 50%;
+      background: var(--purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(60px, 11vw, 90px);
+      margin-bottom: 28px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .welcome-circle::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 4px dashed var(--purple);
+      opacity: 0.35;
+      animation: spin 18s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .welcome-tagline {
+      font-size: clamp(20px, 4.2vw, 32px);
+      font-weight: 900;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: center;
+      line-height: 1.25;
+      max-width: 520px;
+      margin-bottom: 14px;
+    }
+    .welcome-sub {
+      font-size: clamp(13px, 2.2vw, 17px);
+      color: var(--purple);
+      opacity: 0.75;
+      text-align: center;
+      max-width: 400px;
+      margin-bottom: 40px;
+      line-height: 1.5;
+    }
+    .welcome-hint {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--purple);
+      opacity: 0.45;
+      letter-spacing: 0.04em;
+    }
+
+    /* ════════════════════════════════
+       QUIZ SCREEN
+    ════════════════════════════════ */
+    #screen-quiz {
+      background: var(--light-green);
+      justify-content: flex-start;
+      padding-top: 28px;
+    }
+    .quiz-topbar {
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-shrink: 0;
+    }
+    .quiz-logo { font-size: 20px; }
+    .quiz-steps {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .step-pip {
+      height: 10px;
+      border-radius: 5px;
+      background: var(--purple);
+      transition: width 0.3s ease, opacity 0.3s ease;
+    }
+    .step-pip.past    { width: 28px; opacity: 1; }
+    .step-pip.current { width: 28px; opacity: 0.6; }
+    .step-pip.future  { width: 10px; opacity: 0.2; }
+
+    .quiz-q-wrap {
+      width: 100%;
+      max-width: 580px;
+      margin-bottom: 28px;
+      flex-shrink: 0;
+    }
+    .quiz-qnum {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple);
+      opacity: 0.55;
+      margin-bottom: 8px;
+    }
+    .quiz-question {
+      font-size: clamp(22px, 4.8vw, 36px);
+      font-weight: 900;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+
+    .quiz-grid {
+      width: 100%;
+      max-width: 580px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .opt-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 22px 12px;
+      border: 3px solid var(--purple);
+      border-radius: 22px;
+      background: var(--white);
+      color: var(--purple);
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(14px, 2.4vw, 18px);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, transform 0.1s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1.3;
+      text-align: center;
+      min-height: 96px;
+    }
+    .opt-btn .opt-emoji { font-size: clamp(26px, 5vw, 36px); line-height: 1; }
+    .opt-btn:hover { background: var(--light-green); }
+    .opt-btn:active, .opt-btn.picked {
+      background: var(--purple);
+      color: var(--green);
+      border-color: var(--purple);
+      transform: scale(0.96);
+    }
+
+    /* ════════════════════════════════
+       LOADING SCREEN
+    ════════════════════════════════ */
+    #screen-loading {
+      background: var(--green);
+      gap: 36px;
+    }
+    .loading-logo { font-size: 28px; }
+    .loading-title {
+      font-size: clamp(24px, 5vw, 38px);
+      font-weight: 900;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+    .loading-sub {
+      font-size: clamp(14px, 2.2vw, 17px);
+      color: var(--purple);
+      opacity: 0.65;
+    }
+    .dots-row {
+      display: flex;
+      gap: 14px;
+    }
+    .ldot {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--purple);
+      animation: boing 0.9s ease-in-out infinite;
+    }
+    .ldot:nth-child(2) { animation-delay: 0.18s; }
+    .ldot:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes boing {
+      0%, 75%, 100% { transform: translateY(0) scale(1);    opacity: 0.35; }
+      35%            { transform: translateY(-22px) scale(1.15); opacity: 1; }
+    }
+
+    /* ════════════════════════════════
+       RESULT SCREEN
+    ════════════════════════════════ */
+    #screen-result {
+      background: var(--light-green);
+      gap: 16px;
+      padding-top: 32px;
+    }
+    .result-logo { font-size: 20px; flex-shrink: 0; }
+    .result-eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--purple);
+      opacity: 0.6;
+    }
+    .portrait-ring {
+      width: clamp(130px, 22vw, 175px);
+      height: clamp(130px, 22vw, 175px);
+      border-radius: 50%;
+      border: 5px solid var(--purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(52px, 9vw, 74px);
+      flex-shrink: 0;
+      animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes pop-in {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .result-name {
+      font-size: clamp(38px, 8vw, 60px);
+      font-weight: 900;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+    .match-score {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .score-star { font-size: 20px; opacity: 0.25; transition: opacity 0.2s; }
+    .score-star.lit { opacity: 1; }
+    .result-desc {
+      font-size: clamp(15px, 2.4vw, 19px);
+      font-weight: 600;
+      color: var(--purple);
+      text-align: center;
+      max-width: 480px;
+      line-height: 1.55;
+    }
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      max-width: 480px;
+    }
+    .tag {
+      background: var(--green);
+      color: var(--purple);
+      padding: 8px 18px;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: clamp(12px, 2vw, 15px);
+    }
+    .result-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ════════════════════════════════
+       RECEIPT SCREEN
+    ════════════════════════════════ */
+    #screen-receipt {
+      background: var(--green);
+      gap: 20px;
+    }
+    .receipt-logo { font-size: 22px; }
+    .receipt-wrap {
+      filter: drop-shadow(0 8px 28px rgba(0,0,0,0.22));
+    }
+    .receipt {
+      background: var(--cream);
+      width: 290px;
+      padding: 24px 22px 28px;
+      font-family: 'Courier New', Courier, monospace;
+      clip-path: polygon(
+        0 0, 100% 0,
+        100% calc(100% - 10px),
+        /* zigzag bottom */
+        95%  100%, 90% calc(100% - 10px),
+        85%  100%, 80% calc(100% - 10px),
+        75%  100%, 70% calc(100% - 10px),
+        65%  100%, 60% calc(100% - 10px),
+        55%  100%, 50% calc(100% - 10px),
+        45%  100%, 40% calc(100% - 10px),
+        35%  100%, 30% calc(100% - 10px),
+        25%  100%, 20% calc(100% - 10px),
+        15%  100%, 10% calc(100% - 10px),
+        5%   100%, 0   calc(100% - 10px)
+      );
+      padding-bottom: 36px;
+    }
+    .rcpt-header {
+      text-align: center;
+      padding-bottom: 14px;
+      border-bottom: 1px dashed #bbb;
+      margin-bottom: 14px;
+    }
+    .rcpt-brand {
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--purple);
+    }
+    .rcpt-sub {
+      font-size: 10px;
+      color: #666;
+      margin-top: 3px;
+      letter-spacing: 1px;
+    }
+    .rcpt-meta {
+      font-size: 11px;
+      color: #444;
+      display: flex;
+      justify-content: space-between;
+      margin: 3px 0;
+    }
+    .rcpt-match-box {
+      margin: 14px 0;
+      text-align: center;
+      border-top: 1px dashed #bbb;
+      border-bottom: 1px dashed #bbb;
+      padding: 12px 0;
+    }
+    .rcpt-match-lbl { font-size: 10px; letter-spacing: 2px; color: #777; text-transform: uppercase; }
+    .rcpt-match-name { font-size: 26px; font-weight: bold; color: var(--purple); letter-spacing: 2px; margin: 4px 0 2px; }
+    .rcpt-match-emoji { font-size: 28px; }
+    .rcpt-shared-title { font-size: 10px; letter-spacing: 2px; color: #777; text-transform: uppercase; margin-bottom: 6px; }
+    .rcpt-shared-item { font-size: 12px; color: #333; padding: 2px 0; }
+    .rcpt-shared-item::before { content: '★ '; color: var(--purple); }
+    .rcpt-footer {
+      margin-top: 14px;
+      border-top: 1px dashed #bbb;
+      padding-top: 12px;
+      text-align: center;
+    }
+    .rcpt-barcode {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 2px;
+      margin: 8px auto 8px;
+      height: 44px;
+    }
+    .rcpt-barcode span {
+      background: #222;
+      display: block;
+    }
+    .rcpt-footer-txt { font-size: 9px; color: #888; letter-spacing: 1px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<!-- ── Hoek (always bottom-right) ── -->
+<div class="hoek" aria-hidden="true">
+  <div class="hoek-v"></div>
+  <div class="hoek-h"></div>
+</div>
+
+<!-- ════════ WELCOME ════════ -->
+<div class="screen active" id="screen-welcome">
+  <div class="wordmark welcome-logo"><span class="wordmark-box">GRENSLOOS</span></div>
+  <div class="welcome-circle" aria-hidden="true">🌾</div>
+  <h1 class="welcome-tagline">Ontdek wie in Weiteveen op jou lijkt.</h1>
+  <p class="welcome-sub">Beantwoord vijf korte vragen en ontmoet jouw Weiteveense match!</p>
+  <button class="btn btn-purple" id="btn-start">
+    <span>▶</span><span>Begin de quiz</span>
+  </button>
+  <p class="welcome-hint">— Druk op de knop om te starten —</p>
+</div>
+
+<!-- ════════ QUIZ ════════ -->
+<div class="screen" id="screen-quiz">
+  <div class="quiz-topbar">
+    <div class="wordmark quiz-logo"><span class="wordmark-box">GRENSLOOS</span></div>
+    <div class="quiz-steps" id="quiz-steps" aria-label="Voortgang"></div>
+  </div>
+  <div class="quiz-q-wrap">
+    <p class="quiz-qnum" id="quiz-qnum"></p>
+    <h2 class="quiz-question" id="quiz-question"></h2>
+  </div>
+  <div class="quiz-grid" id="quiz-grid" role="group" aria-label="Kies een antwoord"></div>
+</div>
+
+<!-- ════════ LOADING ════════ -->
+<div class="screen" id="screen-loading" aria-live="polite">
+  <div class="wordmark loading-logo"><span class="wordmark-box">GRENSLOOS</span></div>
+  <p class="loading-title">Jouw match zoeken…</p>
+  <p class="loading-sub">Even geduld!</p>
+  <div class="dots-row" aria-hidden="true">
+    <div class="ldot"></div>
+    <div class="ldot"></div>
+    <div class="ldot"></div>
+  </div>
+</div>
+
+<!-- ════════ RESULT ════════ -->
+<div class="screen" id="screen-result">
+  <div class="wordmark result-logo"><span class="wordmark-box">GRENSLOOS</span></div>
+  <p class="result-eyebrow">Jouw Weiteveense match</p>
+  <div class="portrait-ring" id="result-portrait" aria-hidden="true"></div>
+  <h2 class="result-name" id="result-name"></h2>
+  <div class="match-score" id="match-score" aria-label="Overeenkomst"></div>
+  <p class="result-desc" id="result-desc"></p>
+  <div class="tags-row" id="result-tags"></div>
+  <div class="result-actions">
+    <button class="btn btn-purple" id="btn-receipt">
+      <span>🖨</span><span>Print bonnetje</span>
+    </button>
+    <button class="btn btn-green" id="btn-restart-result">
+      <span>↩</span><span>Opnieuw</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════ RECEIPT ════════ -->
+<div class="screen" id="screen-receipt">
+  <div class="wordmark receipt-logo"><span class="wordmark-box">GRENSLOOS</span></div>
+  <div class="receipt-wrap">
+    <div class="receipt" id="receipt-body"></div>
+  </div>
+  <button class="btn btn-green" id="btn-restart-receipt">
+    <span>↩</span><span>Terug naar start</span>
+  </button>
+</div>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════════
+   DATA
+══════════════════════════════════════ */
+
+const QUESTIONS = [
+  {
+    key: 'food',
+    text: 'Wat is je lievelingseten?',
+    opts: [
+      { v: 'pannenkoeken', label: 'Pannenkoeken', emoji: '🥞' },
+      { v: 'stamppot',     label: 'Stamppot',     emoji: '🥘' },
+      { v: 'appeltaart',   label: 'Appeltaart',   emoji: '🍎' },
+      { v: 'bitterballen', label: 'Bitterballen', emoji: '🍟' },
+    ]
+  },
+  {
+    key: 'tv',
+    text: 'Wat is je favoriete tv-programma?',
+    opts: [
+      { v: 'wie is de mol?',   label: 'Wie is de Mol?',   emoji: '🕵️' },
+      { v: 'gtst',             label: 'GTST',             emoji: '💬' },
+      { v: 'boer zoekt vrouw', label: 'Boer zoekt Vrouw', emoji: '🌾' },
+      { v: 'de slimste mens',  label: 'De Slimste Mens',  emoji: '🧠' },
+    ]
+  },
+  {
+    key: 'hobby',
+    text: 'Wat doe je het liefst in je vrije tijd?',
+    opts: [
+      { v: 'fietsen',    label: 'Fietsen',    emoji: '🚴' },
+      { v: 'tuinieren',  label: 'Tuinieren',  emoji: '🌱' },
+      { v: 'lezen',      label: 'Lezen',      emoji: '📚' },
+      { v: 'voetbal',    label: 'Voetbal',    emoji: '⚽' },
+    ]
+  },
+  {
+    key: 'season',
+    text: 'Wat is je favoriete seizoen?',
+    opts: [
+      { v: 'lente',  label: 'Lente',  emoji: '🌸' },
+      { v: 'zomer',  label: 'Zomer',  emoji: '☀️' },
+      { v: 'herfst', label: 'Herfst', emoji: '🍂' },
+      { v: 'winter', label: 'Winter', emoji: '❄️' },
+    ]
+  },
+  {
+    key: 'music',
+    text: 'Welk soort muziek houd je het meest van?',
+    opts: [
+      { v: 'pop',      label: 'Pop',      emoji: '🎵' },
+      { v: 'klassiek', label: 'Klassiek', emoji: '🎻' },
+      { v: 'schlager', label: 'Schlager', emoji: '🎺' },
+      { v: 'rock',     label: 'Rock',     emoji: '🎸' },
+    ]
+  },
+];
+
+const PEOPLE = [
+  { name: 'Henk',    emoji: '👨‍🌾', bg: '#5c3d8f', food: 'pannenkoeken', tv: 'wie is de mol?',   hobby: 'fietsen',   season: 'zomer',  music: 'schlager' },
+  { name: 'Grietje', emoji: '🌷',   bg: '#3d7a3d', food: 'stamppot',     tv: 'boer zoekt vrouw', hobby: 'tuinieren', season: 'lente',  music: 'klassiek' },
+  { name: 'Jan',     emoji: '⚽',   bg: '#2d5a8e', food: 'bitterballen', tv: 'gtst',             hobby: 'voetbal',   season: 'herfst', music: 'pop'      },
+  { name: 'Marga',   emoji: '📚',   bg: '#7a3d5c', food: 'appeltaart',   tv: 'de slimste mens',  hobby: 'lezen',     season: 'winter', music: 'klassiek' },
+  { name: 'Klaas',   emoji: '🐄',   bg: '#5c7a2d', food: 'stamppot',     tv: 'boer zoekt vrouw', hobby: 'voetbal',   season: 'herfst', music: 'rock'     },
+  { name: 'Riet',    emoji: '🧶',   bg: '#8e4a2d', food: 'pannenkoeken', tv: 'wie is de mol?',   hobby: 'tuinieren', season: 'lente',  music: 'pop'      },
+  { name: 'Bert',    emoji: '🚴',   bg: '#2d7a7a', food: 'bitterballen', tv: 'gtst',             hobby: 'fietsen',   season: 'zomer',  music: 'rock'     },
+  { name: 'Ans',     emoji: '🌿',   bg: '#44276D', food: 'appeltaart',   tv: 'de slimste mens',  hobby: 'tuinieren', season: 'lente',  music: 'klassiek' },
+  { name: 'Piet',    emoji: '🎶',   bg: '#7a5a2d', food: 'bitterballen', tv: 'boer zoekt vrouw', hobby: 'voetbal',   season: 'zomer',  music: 'schlager' },
+  { name: 'Truus',   emoji: '📖',   bg: '#2d3d7a', food: 'stamppot',     tv: 'de slimste mens',  hobby: 'lezen',     season: 'winter', music: 'pop'      },
+];
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+
+let currentQ   = 0;
+let answers    = {};
+let match      = null;
+let quizNumber = 0;
+
+/* ══════════════════════════════════════
+   SCREEN MANAGEMENT
+══════════════════════════════════════ */
+
+function showScreen(id) {
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(s => {
+    if (s.classList.contains('active')) {
+      s.classList.remove('active');
+      s.classList.add('exit');
+      const el = s;
+      el.addEventListener('transitionend', () => el.classList.remove('exit'), { once: true });
+    }
+  });
+  const next = document.getElementById(id);
+  // Small delay so exit transition is visible
+  requestAnimationFrame(() => requestAnimationFrame(() => next.classList.add('active')));
+}
+
+/* ══════════════════════════════════════
+   QUIZ
+══════════════════════════════════════ */
+
+function startQuiz() {
+  currentQ   = 0;
+  answers    = {};
+  quizNumber = Math.floor(Math.random() * 9000) + 1000;
+  renderQuestion();
+  showScreen('screen-quiz');
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+
+  // Steps
+  const steps = document.getElementById('quiz-steps');
+  steps.innerHTML = QUESTIONS.map((_, i) => {
+    const cls = i < currentQ ? 'past' : i === currentQ ? 'current' : 'future';
+    return `<div class="step-pip ${cls}" aria-hidden="true"></div>`;
+  }).join('');
+
+  // Number + question
+  document.getElementById('quiz-qnum').textContent =
+    `Vraag ${currentQ + 1} van ${QUESTIONS.length}`;
+  document.getElementById('quiz-question').textContent = q.text.toUpperCase();
+
+  // Options (fade in)
+  const grid = document.getElementById('quiz-grid');
+  grid.style.opacity = '0';
+  grid.style.pointerEvents = '';
+  grid.innerHTML = q.opts.map(opt =>
+    `<button class="opt-btn" data-value="${opt.v}" aria-label="${opt.label}">
+       <span class="opt-emoji" aria-hidden="true">${opt.emoji}</span>
+       <span>${opt.label}</span>
+     </button>`
+  ).join('');
+  requestAnimationFrame(() => {
+    grid.style.transition = 'opacity 0.25s ease';
+    grid.style.opacity = '1';
+  });
+}
+
+document.getElementById('quiz-grid').addEventListener('click', e => {
+  const btn = e.target.closest('.opt-btn');
+  if (!btn) return;
+
+  btn.classList.add('picked');
+  // Prevent double-tap
+  document.getElementById('quiz-grid').style.pointerEvents = 'none';
+
+  const value = btn.dataset.value;
+  const key   = QUESTIONS[currentQ].key;
+  answers[key] = value;
+
+  setTimeout(() => {
+    currentQ++;
+    if (currentQ >= QUESTIONS.length) {
+      findMatch();
+    } else {
+      document.getElementById('quiz-grid').style.pointerEvents = '';
+      renderQuestion();
+    }
+  }, 320);
+});
+
+/* ══════════════════════════════════════
+   MATCHING
+══════════════════════════════════════ */
+
+function findMatch() {
+  showScreen('screen-loading');
+
+  setTimeout(() => {
+    let best = null, bestScore = -1;
+
+    for (const person of PEOPLE) {
+      let score = 0;
+      for (const key of Object.keys(answers)) {
+        if (person[key] === answers[key]) score++;
+      }
+      if (score > bestScore) { bestScore = score; best = person; }
+    }
+
+    match = best;
+    buildResult(bestScore);
+    showScreen('screen-result');
+  }, 2400);
+}
+
+/* ══════════════════════════════════════
+   RESULT
+══════════════════════════════════════ */
+
+function buildResult(score) {
+  const p = match;
+
+  // Portrait
+  const portrait = document.getElementById('result-portrait');
+  portrait.textContent = p.emoji;
+  portrait.style.background = p.bg;
+
+  // Name
+  document.getElementById('result-name').textContent = p.name.toUpperCase();
+
+  // Stars (out of 5)
+  const starsEl = document.getElementById('match-score');
+  starsEl.innerHTML = Array.from({ length: 5 }, (_, i) =>
+    `<span class="score-star ${i < score ? 'lit' : ''}" aria-hidden="true">★</span>`
+  ).join('');
+  starsEl.setAttribute('aria-label', `${score} van 5 overeenkomsten`);
+
+  // Shared interests
+  const shared = QUESTIONS
+    .filter(q => p[q.key] === answers[q.key])
+    .map(q => q.opts.find(o => o.v === p[q.key]));
+
+  // Description
+  let desc;
+  if (shared.length === 0) {
+    desc = `Jullie zijn elkaars tegenpolen — maar tegengestelden trekken elkaar aan!`;
+  } else {
+    const labels = shared.map(o => o.label.toLowerCase());
+    if (labels.length === 1) {
+      desc = `Jij en ${p.name} houden allebei van ${labels[0]}!`;
+    } else {
+      const last = labels.pop();
+      desc = `Jij en ${p.name} houden allebei van ${labels.join(', ')} en ${last}!`;
+    }
+  }
+  document.getElementById('result-desc').textContent = desc;
+
+  // Tags
+  document.getElementById('result-tags').innerHTML =
+    shared.map(o => `<span class="tag">${o.emoji} ${o.label}</span>`).join('');
+}
+
+/* ══════════════════════════════════════
+   RECEIPT
+══════════════════════════════════════ */
+
+function buildReceipt() {
+  const p      = match;
+  const now    = new Date();
+  const date   = now.toLocaleDateString('nl-NL');
+  const time   = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+  const shared = QUESTIONS
+    .filter(q => p[q.key] === answers[q.key])
+    .map(q => q.opts.find(o => o.v === p[q.key]));
+
+  // Random-width barcode bars
+  const bars = Array.from({ length: 32 }, () => {
+    const w = [1,2,2,3,4][Math.floor(Math.random()*5)];
+    const h = Math.floor(Math.random() * 20) + 24;
+    return `<span style="width:${w}px;height:${h}px"></span>`;
+  }).join('');
+
+  document.getElementById('receipt-body').innerHTML = `
+    <div class="rcpt-header">
+      <div class="rcpt-brand">GRENSLOOS</div>
+      <div class="rcpt-sub">VRIENDENBOEKJESMACHINE</div>
+      <div class="rcpt-sub">Weiteveen · Drenthe</div>
+    </div>
+    <div class="rcpt-meta"><span>Datum</span><span>${date}</span></div>
+    <div class="rcpt-meta"><span>Tijd</span><span>${time}</span></div>
+    <div class="rcpt-meta"><span>Quiz nr.</span><span>#${quizNumber}</span></div>
+    <div class="rcpt-match-box">
+      <div class="rcpt-match-lbl">Jouw Weiteveense match</div>
+      <div class="rcpt-match-emoji">${p.emoji}</div>
+      <div class="rcpt-match-name">${p.name.toUpperCase()}</div>
+    </div>
+    ${shared.length > 0 ? `
+      <div class="rcpt-shared-title">Gedeelde interesses</div>
+      ${shared.map(o => `<div class="rcpt-shared-item">${o.label}</div>`).join('')}
+    ` : `<div style="font-size:11px;color:#888;text-align:center;padding:8px 0">Jullie zijn elkaars tegenpolen!</div>`}
+    <div class="rcpt-footer">
+      <div class="rcpt-barcode">${bars}</div>
+      <div class="rcpt-footer-txt">
+        CULTUUR VERBINDT ONS<br>
+        stichting-grensloos.nl
+      </div>
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════
+   WIRE-UP BUTTONS
+══════════════════════════════════════ */
+
+document.getElementById('btn-start').addEventListener('click', startQuiz);
+
+document.getElementById('btn-receipt').addEventListener('click', () => {
+  buildReceipt();
+  showScreen('screen-receipt');
+});
+
+document.getElementById('btn-restart-result').addEventListener('click', () => {
+  showScreen('screen-welcome');
+});
+
+document.getElementById('btn-restart-receipt').addEventListener('click', () => {
+  showScreen('screen-welcome');
+});
+</script>
+</body>
+</html>
