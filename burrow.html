@@ -1,0 +1,2432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burrowing In Guilt</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; cursor: none; }
+#debug { position: fixed; right: 0; top: 0; width: 280px; height: 100vh; background: rgba(0,0,0,0.85); color: #0f0; font: 11px monospace; padding: 8px; overflow-y: auto; z-index: 100; display: none; }
+#debug h3 { color: #0ff; margin: 6px 0 3px; font-size: 11px; }
+#debug label { display: flex; justify-content: space-between; align-items: center; margin: 2px 0; font-size: 10px; }
+#debug input[type=range] { width: 100px; height: 12px; }
+#debug .readout { color: #ff0; padding: 1px 0; font-size: 10px; }
+#mobile-controls { position: fixed; bottom: 0; left: 0; right: 0; display: none; z-index: 50; pointer-events: none; padding: 10px 16px 18px; }
+#mobile-controls .ctrl-group { pointer-events: auto; }
+#mobile-controls .ctrl-row { display: flex; justify-content: space-between; align-items: flex-end; }
+/* D-Pad */
+.dpad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; gap: 2px; }
+.dpad .btn { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 8px; color: #fff; font-size: 20px; user-select: none; -webkit-user-select: none; touch-action: none; }
+.dpad .btn:active, .dpad .btn.pressed { background: rgba(255,255,255,0.35); }
+.dpad .empty { background: none; border: none; }
+/* Action buttons */
+.action-btns { display: flex; gap: 10px; align-items: flex-end; }
+.action-btns .btn { width: 58px; height: 58px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 50%; color: #fff; font-size: 13px; font-family: monospace; font-weight: bold; user-select: none; -webkit-user-select: none; touch-action: none; }
+.action-btns .btn:active, .action-btns .btn.pressed { background: rgba(255,255,255,0.35); }
+/* Top mobile bar */
+.mobile-top { position: fixed; top: 8px; right: 8px; display: none; z-index: 51; gap: 8px; flex-direction: row; }
+.mobile-top .btn-sm { pointer-events: auto; padding: 6px 12px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; color: #fff; font: bold 12px monospace; user-select: none; -webkit-user-select: none; touch-action: none; }
+.mobile-top .btn-sm:active { background: rgba(255,255,255,0.35); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="debug"></div>
+<div id="mobile-controls">
+  <div class="ctrl-row">
+    <div class="ctrl-group dpad">
+      <div class="empty"></div>
+      <div class="btn" data-key="ArrowUp">▲</div>
+      <div class="empty"></div>
+      <div class="btn" data-key="ArrowLeft">◀</div>
+      <div class="empty"></div>
+      <div class="btn" data-key="ArrowRight">▶</div>
+      <div class="empty"></div>
+      <div class="btn" data-key="ArrowDown">▼</div>
+      <div class="empty"></div>
+    </div>
+    <div class="ctrl-group action-btns">
+      <div class="btn" data-key="Space">JMP</div>
+      <div class="btn" data-key="Enter">OK</div>
+    </div>
+  </div>
+</div>
+<div class="mobile-top" id="mobile-top">
+  <div class="btn-sm" data-action="pause">⏸ P</div>
+  <div class="btn-sm" data-action="debug">🔧 T</div>
+</div>
+<script>
+// ============================================================
+// BURROWING IN GUILT — Complete Game
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const dbg = document.getElementById('debug');
+
+// -- Canvas sizing
+function resize() {
+  canvas.width = Math.min(window.innerWidth, 960);
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// -- Constants
+const T = 8; // tile size in pixels
+const WORLD_W = 500; // tiles wide (~4000px)
+const WORLD_H = 80;  // tiles tall (~640px)
+const SKY_H = 20;
+const SURFACE_Y = SKY_H;
+const SHALLOW_END = 40;
+const DEEP_END = 60;
+const DEEPZONE_START = 60;
+
+// Tile types
+const AIR = 0, DIRT = 1, ROCK = 2, GRASS = 3, WATER = 4, TUNNEL = 5, EX_TUNNEL = 6, BEDROCK = 7;
+
+// -- Audio Context
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playTone(freq, dur, type='square', vol=0.08, detune=0) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  o.detune.value = detune;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + dur);
+}
+
+function playDig() { playTone(80 + Math.random()*40, 0.08, 'sawtooth', 0.06); }
+function playSurface() { playTone(300, 0.15, 'sine', 0.07); playTone(400, 0.1, 'sine', 0.05); }
+function playCarrot() { playTone(500, 0.1, 'sine', 0.08); playTone(700, 0.12, 'sine', 0.06); }
+function playMemory() { playTone(440, 0.3, 'sine', 0.1); playTone(550, 0.3, 'sine', 0.08); playTone(660, 0.4, 'sine', 0.07); }
+function playHawkWind() { playTone(200, 0.8, 'sawtooth', 0.03); }
+function playHawkScreech() { playTone(900, 0.3, 'sawtooth', 0.1, 300); }
+function playFerretHiss() { playTone(1200, 0.2, 'sawtooth', 0.04); }
+function playSplash() { playTone(150, 0.15, 'sine', 0.06); playTone(100, 0.2, 'sine', 0.04); }
+function playHop() { playTone(350, 0.06, 'square', 0.04); }
+function playHeartbeat() { playTone(60, 0.15, 'sine', 0.12); setTimeout(() => playTone(50, 0.12, 'sine', 0.1), 150); }
+function playBeep() { playTone(800, 0.1, 'square', 0.06); }
+function playFatigue() { playTone(40, 0.4, 'sine', 0.05); }
+function playHit() { playTone(150, 0.2, 'sawtooth', 0.12); playTone(80, 0.3, 'sawtooth', 0.08); }
+function playRockFall() { playTone(60, 0.3, 'sawtooth', 0.1); }
+
+// Background music
+let bgMusicInterval = null;
+const melody = [262, 294, 330, 349, 330, 294, 262, 220, 196, 220, 262, 294, 262, 0, 0, 0];
+let melodyIdx = 0;
+function startMusic() {
+  if (bgMusicInterval) return;
+  bgMusicInterval = setInterval(() => {
+    if (!audioCtx || gameState !== 'playing') return;
+    const note = melody[melodyIdx % melody.length];
+    if (note > 0) playTone(note, 0.25, 'sine', 0.025);
+    melodyIdx++;
+  }, 400);
+}
+function stopMusic() { clearInterval(bgMusicInterval); bgMusicInterval = null; }
+
+// -- Game variables
+let gameState = 'title'; // title, howto, tutorial, playing, paused, ending, gameover
+let titleSelection = 0; // 0 = Start, 1 = How to Play
+let world = [];
+let particles = [];
+let hawks = [];
+let ferrets = [];
+let carrots = [];
+let memorabilia = [];
+let camera = { x: 0, y: 0 };
+let gameTimer = 600; // 10 min in seconds
+let frameCount = 0;
+
+// Tuning variables (debug-adjustable)
+let V = {
+  surfSpeed: 1.8,
+  digSpeed: 0.72,
+  exTunnelSpeed: 1.8,
+  swimSpeed: 0.5,
+  stamDeplSurf: 0.08,
+  stamDeplUG: 0.17,
+  stamRegenSurf: 0.25,
+  stamRegenUG: 0.3,
+  oxyDepl: 0.05,
+  oxyCutoff: 0.36,
+  oxyDeplWater: 0.35,
+  oxyRegen: 5.0,
+  hawkDangerRate: 0.015,
+  hawkFreq: 3.0,
+  hawkGlideDur: 1.2,
+  ferretSpeed: 1.5,
+  nearDeathDur: 10,
+  timerSpeed: 1.0,
+  fatigueThresh: 10,
+  jumpPower: 3.2,
+  gravity: 0.18,
+  zoom: 2.45,
+  rockFallDelay: 1.0,
+};
+
+const VERSION = 'v0.44';
+
+// World generation config (adjustable from debug panel, applied on next game start)
+let W = {
+  rockChanceShallow: 0.03,
+  rockChanceMid: 0.07,
+  rockChanceDeep: 0.12,
+  waterPockets: 40,
+  waterPocketSize: 4,
+  surfacePuddles: 12,
+  exTunnelsMid: 6,
+  exTunnelsDeep: 8,
+  carrotsUnderground: 8,
+  ferretCount: 3,
+  hawkCount: 4,
+  memorabiliaCount: 8,
+  memorabiliaMinLayer: 0,  // 0=surface 1=shallow 2=deep 3=deep zone
+  memorabiliaMaxLayer: 3,
+};
+
+// Player
+let P = {
+  x: 30, y: 0, vx: 0, vy: 0,
+  stamina: 100, oxygen: 100,
+  underground: false, inWater: false,
+  fatigued: false, nearDeath: false, nearDeathTimer: 0,
+  danger: 0, // internal hawk danger
+  facing: 1, // 1=right, -1=left
+  digging: false, jumping: false,
+  onGround: false,
+  memCount: 0,
+  dead: false, deathCause: '',
+  hopAnim: 0, digAnim: 0,
+  hitFlash: 0,
+};
+
+// Memorabilia messages
+const MEM_MSGS = [
+  "Remember watching the sunset from the hilltop?",
+  "We made these crowns from wildflowers...",
+  "Our first shared carrot. You gave me the bigger half.",
+  "This melody always made us dance.",
+  "Your words still warm my heart.",
+  "Matching bracelets. You picked the colors.",
+  "We drew this map of all our secret spots.",
+  "You said this clover would bring us luck."
+];
+const MEM_NAMES = ["Photo", "Flower Crown", "Shared Carrot", "Music Box", "Love Letter", "Bracelet", "Map", "Clover"];
+
+// Popup system
+let popup = { text: '', timer: 0, color: '#ffd700' };
+function showPopup(text, dur=3, color='#ffd700') {
+  popup = { text, timer: dur, color };
+}
+
+// Keys
+let keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyT') toggleDebug();
+  if (e.code === 'KeyP' && gameState === 'playing') gameState = 'paused';
+  else if (e.code === 'KeyP' && gameState === 'paused') gameState = 'playing';
+  if (e.code === 'KeyR' && (gameState === 'paused' || gameState === 'gameover')) initGame();
+  // Title menu navigation
+  if (gameState === 'title') {
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') titleSelection = 0;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') titleSelection = 1;
+    if (e.code === 'Enter' || e.code === 'Space') {
+      ensureAudio();
+      if (titleSelection === 0) gameState = 'tutorial';
+      else { gameState = 'howto'; howtoScroll = 0; }
+    }
+  } else if (gameState === 'howto') {
+    if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Escape') gameState = 'title';
+  } else if (gameState === 'tutorial') {
+    if (e.code === 'Enter') { gameState = 'playing'; startMusic(); showPopup('Memorabilia: 0/' + W.memorabiliaCount + ' ❤', 3); }
+  } else if (gameState === 'ending' || gameState === 'gameover') {
+    if (e.code === 'Enter') initGame();
+  }
+  e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// -- Mobile controls
+const mobileControls = document.getElementById('mobile-controls');
+const mobileTop = document.getElementById('mobile-top');
+let isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+function showMobileControls() {
+  isMobile = true;
+  mobileControls.style.display = 'block';
+  mobileTop.style.display = 'flex';
+  canvas.style.cursor = 'default';
+}
+
+if (isMobile) showMobileControls();
+// Also show on first touch in case detection missed it
+window.addEventListener('touchstart', () => { if (!isMobile) showMobileControls(); }, { once: true });
+
+// D-pad and action buttons
+document.querySelectorAll('#mobile-controls .btn').forEach(btn => {
+  let keyCode = btn.dataset.key;
+  btn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    ensureAudio();
+    keys[keyCode] = true;
+    btn.classList.add('pressed');
+    // Fire one-shot actions that the keydown handler does
+    if (keyCode === 'Enter') {
+      if (gameState === 'title') {
+        ensureAudio();
+        if (titleSelection === 0) gameState = 'tutorial';
+        else { gameState = 'howto'; howtoScroll = 0; }
+      }
+      else if (gameState === 'howto') { gameState = 'title'; }
+      else if (gameState === 'tutorial') { gameState = 'playing'; startMusic(); showPopup('Memorabilia: 0/' + W.memorabiliaCount + ' ❤', 3); }
+      else if (gameState === 'ending' || gameState === 'gameover') { initGame(); }
+    }
+    // Title menu navigation via d-pad
+    if (gameState === 'title') {
+      if (keyCode === 'ArrowUp') titleSelection = 0;
+      if (keyCode === 'ArrowDown') titleSelection = 1;
+    }
+  }, { passive: false });
+  btn.addEventListener('touchend', e => {
+    e.preventDefault();
+    keys[keyCode] = false;
+    btn.classList.remove('pressed');
+  });
+  btn.addEventListener('touchcancel', e => {
+    keys[keyCode] = false;
+    btn.classList.remove('pressed');
+  });
+});
+
+// Top bar buttons (pause, debug)
+document.querySelectorAll('#mobile-top .btn-sm').forEach(btn => {
+  btn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    ensureAudio();
+    let action = btn.dataset.action;
+    if (action === 'pause') {
+      if (gameState === 'playing') gameState = 'paused';
+      else if (gameState === 'paused') gameState = 'playing';
+    } else if (action === 'debug') {
+      toggleDebug();
+    }
+  }, { passive: false });
+});
+
+// -- World Generation
+function generateWorld() {
+  world = [];
+  for (let x = 0; x < WORLD_W; x++) {
+    world[x] = [];
+    for (let y = 0; y < WORLD_H; y++) {
+      if (y < SURFACE_Y) {
+        world[x][y] = AIR;
+      } else if (y === SURFACE_Y) {
+        world[x][y] = GRASS;
+      } else if (y >= WORLD_H - 1) {
+        world[x][y] = BEDROCK;
+      } else {
+        world[x][y] = DIRT;
+      }
+    }
+  }
+
+  // Add rocks - more in deeper areas
+  for (let x = 5; x < WORLD_W - 5; x++) {
+    for (let y = SURFACE_Y + 3; y < WORLD_H - 1; y++) {
+      let depth = y - SURFACE_Y;
+      let rockChance = depth > 40 ? W.rockChanceDeep : depth > 20 ? W.rockChanceMid : W.rockChanceShallow;
+      if (Math.random() < rockChance) {
+        world[x][y] = ROCK;
+      }
+    }
+  }
+
+  // Add water pockets on ALL layers
+  for (let i = 0; i < W.waterPockets; i++) {
+    let wx = 15 + Math.floor(Math.random() * (WORLD_W - 30));
+    // Water on all underground layers
+    let minY = SURFACE_Y + 2;
+    let maxY = WORLD_H - 3;
+    let wy = minY + Math.floor(Math.random() * (maxY - minY));
+    let size = 2 + Math.floor(Math.random() * W.waterPocketSize);
+    for (let dx = -size; dx <= size; dx++) {
+      for (let dy = -Math.floor(size/2); dy <= Math.floor(size/2); dy++) {
+        let nx = wx + dx, ny = wy + dy;
+        if (nx > 0 && nx < WORLD_W && ny > SURFACE_Y && ny < WORLD_H - 1) {
+          if (world[nx][ny] === DIRT && Math.random() < 0.7) {
+            world[nx][ny] = WATER;
+          }
+        }
+      }
+    }
+  }
+
+  // Surface water puddles
+  for (let i = 0; i < W.surfacePuddles; i++) {
+    let wx = 20 + Math.floor(Math.random() * (WORLD_W - 40));
+    let size = 1 + Math.floor(Math.random() * 3);
+    for (let dx = -size; dx <= size; dx++) {
+      let nx = wx + dx;
+      if (nx > 0 && nx < WORLD_W) {
+        world[nx][SURFACE_Y + 1] = WATER;
+      }
+    }
+  }
+
+  // Pre-existing tunnels (ex's tunnels)
+  generateExTunnels();
+
+  // Place carrots on surface
+  carrots = [];
+  for (let x = 20; x < WORLD_W - 10; x += 15 + Math.floor(Math.random() * 20)) {
+    carrots.push({ x: x, y: SURFACE_Y - 1, collected: false });
+  }
+  // Some shallow underground carrots
+  for (let i = 0; i < W.carrotsUnderground; i++) {
+    let cx = 30 + Math.floor(Math.random() * (WORLD_W - 60));
+    let cy = SURFACE_Y + 3 + Math.floor(Math.random() * 10);
+    carrots.push({ x: cx, y: cy, collected: false });
+  }
+
+  // Place memorabilia in deep zone ex-tunnels
+  placeMemorabilia();
+
+  // Spawn ferrets in mid-depth tunnels
+  ferrets = [];
+  spawnFerrets();
+
+  // Hawks
+  hawks = [];
+  for (let i = 0; i < W.hawkCount; i++) {
+    hawks.push({
+      x: 50 + Math.random() * (WORLD_W * T - 100),
+      y: 20 + Math.random() * (SKY_H * T - 60),
+      vx: (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5),
+      state: 'patrol', // patrol, glide, swoop
+      target: null,
+      swoopTimer: 0,
+      glideTimer: 0,
+    });
+  }
+}
+
+function generateExTunnels() {
+  // Create several tunnel networks at various depths
+  // Shallow/mid tunnels - fast travel
+  for (let i = 0; i < W.exTunnelsMid; i++) {
+    let sx = 30 + Math.floor(Math.random() * (WORLD_W - 100));
+    let sy = SURFACE_Y + 5 + Math.floor(Math.random() * 25);
+    let len = 15 + Math.floor(Math.random() * 30);
+    let dir = Math.random() > 0.5 ? 1 : 0; // 1=horizontal, 0=vertical-ish
+    for (let j = 0; j < len; j++) {
+      let tx = sx + (dir ? j : Math.floor(j * 0.3));
+      let ty = sy + (dir ? Math.floor(Math.sin(j * 0.3) * 2) : j);
+      if (tx > 0 && tx < WORLD_W && ty > SURFACE_Y && ty < WORLD_H - 1) {
+        if (world[tx][ty] === DIRT || world[tx][ty] === WATER) {
+          world[tx][ty] = EX_TUNNEL;
+        }
+      }
+    }
+  }
+
+  // Deep zone tunnels - where memorabilia lives
+  for (let i = 0; i < W.exTunnelsDeep; i++) {
+    let sx = 20 + Math.floor(i * (WORLD_W - 40) / W.exTunnelsDeep) + Math.floor(Math.random() * 20);
+    let sy = DEEPZONE_START + 2 + Math.floor(Math.random() * (WORLD_H - DEEPZONE_START - 5));
+    let len = 10 + Math.floor(Math.random() * 20);
+    for (let j = 0; j < len; j++) {
+      let tx = sx + j;
+      let ty = sy + Math.floor(Math.sin(j * 0.4) * 1.5);
+      if (tx > 0 && tx < WORLD_W && ty > SURFACE_Y && ty < WORLD_H - 1) {
+        if (world[tx][ty] !== BEDROCK) {
+          world[tx][ty] = EX_TUNNEL;
+        }
+      }
+    }
+    // Create vertical connections from some tunnels up toward surface
+    if (i % 3 === 0) {
+      let connX = sx + Math.floor(len / 2);
+      for (let cy = sy; cy > SURFACE_Y + 5; cy--) {
+        if (connX > 0 && connX < WORLD_W && world[connX][cy] !== BEDROCK && world[connX][cy] !== ROCK) {
+          if (Math.random() < 0.85) world[connX][cy] = EX_TUNNEL;
+        }
+      }
+    }
+  }
+}
+
+function placeMemorabilia() {
+  memorabilia = [];
+  let count = W.memorabiliaCount;
+  if (count <= 0) return;
+
+  // Convert layer indices to Y ranges
+  // 0=surface, 1=shallow, 2=deep, 3=deep zone
+  let layerRanges = [
+    [SURFACE_Y, SURFACE_Y],           // 0: surface
+    [SURFACE_Y + 1, SHALLOW_END - 1], // 1: shallow
+    [SHALLOW_END, DEEP_END - 1],      // 2: deep
+    [DEEPZONE_START, WORLD_H - 2],    // 3: deep zone
+  ];
+
+  let minL = Math.max(0, Math.min(3, W.memorabiliaMinLayer));
+  let maxL = Math.max(minL, Math.min(3, W.memorabiliaMaxLayer));
+  let yMin = layerRanges[minL][0];
+  let yMax = layerRanges[maxL][1];
+
+  // Gather candidate tiles in the allowed range
+  let candidates = [];
+  for (let x = 10; x < WORLD_W - 10; x++) {
+    for (let y = yMin; y <= yMax; y++) {
+      let tile = world[x][y];
+      // Valid placement: open spaces (tunnels, ex-tunnels, air just above surface grass)
+      if (tile === EX_TUNNEL || tile === TUNNEL) {
+        candidates.push({ x, y, priority: tile === EX_TUNNEL ? 2 : 1 });
+      } else if (y === SURFACE_Y && tile === GRASS) {
+        // Surface placement: place above grass
+        candidates.push({ x, y: y - 1, priority: 0 });
+      }
+    }
+  }
+
+  // If not enough candidates, force-create spots
+  if (candidates.length < count * 2) {
+    for (let i = 0; i < count * 2; i++) {
+      let fx = 15 + Math.floor(i * (WORLD_W - 30) / (count * 2));
+      let fy = yMin + Math.floor(Math.random() * Math.max(1, yMax - yMin));
+      if (fx > 0 && fx < WORLD_W && fy > 0 && fy < WORLD_H - 1) {
+        if (fy > SURFACE_Y && world[fx][fy] === DIRT) {
+          world[fx][fy] = EX_TUNNEL;
+          candidates.push({ x: fx, y: fy, priority: 1 });
+        } else if (fy <= SURFACE_Y) {
+          candidates.push({ x: fx, y: SURFACE_Y - 1, priority: 0 });
+        }
+      }
+    }
+  }
+
+  // Sort by x to spread them out, with slight preference for ex-tunnels
+  candidates.sort((a, b) => a.x - b.x || b.priority - a.priority);
+
+  // Pick evenly spaced candidates
+  let step = Math.max(1, Math.floor(candidates.length / count));
+  for (let i = 0; i < count && candidates.length > 0; i++) {
+    let idx = Math.min(i * step + Math.floor(Math.random() * Math.max(1, step)), candidates.length - 1);
+    let c = candidates[idx];
+    memorabilia.push({
+      x: c.x, y: c.y,
+      collected: false,
+      type: i % MEM_MSGS.length,
+      sparkle: 0,
+    });
+  }
+}
+
+function spawnFerrets() {
+  // Place ferrets in tunnel areas
+  for (let i = 0; i < W.ferretCount; i++) {
+    let fx = 80 + Math.floor(Math.random() * (WORLD_W - 160));
+    let fy = SURFACE_Y + 8 + Math.floor(Math.random() * 30);
+    // Find nearest tunnel
+    for (let r = 0; r < 20; r++) {
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+          let tx = fx + dx, ty = fy + dy;
+          if (tx > 0 && tx < WORLD_W && ty > SURFACE_Y && ty < WORLD_H - 1) {
+            if (world[tx][ty] === EX_TUNNEL || world[tx][ty] === TUNNEL) {
+              ferrets.push({
+                x: tx * T + T/2, y: ty * T + T/2,
+                tx: tx, ty: ty,
+                vx: 0, vy: 0,
+                state: 'patrol', // patrol, chase, flee
+                path: [],
+                pathTimer: 0,
+                alive: true,
+              });
+              r = 99; dx = 99; dy = 99; // break all loops
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// -- Pathfinding (simplified BFS for ferrets)
+function findPath(sx, sy, ex, ey, maxSteps=200) {
+  let stx = Math.floor(sx), sty = Math.floor(sy);
+  let etx = Math.floor(ex), ety = Math.floor(ey);
+  if (stx === etx && sty === ety) return [];
+
+  let open = [{ x: stx, y: sty, path: [] }];
+  let visited = new Set();
+  visited.add(stx + ',' + sty);
+  let steps = 0;
+
+  while (open.length > 0 && steps < maxSteps) {
+    let cur = open.shift();
+    steps++;
+    let dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (let [dx, dy] of dirs) {
+      let nx = cur.x + dx, ny = cur.y + dy;
+      let key = nx + ',' + ny;
+      if (visited.has(key)) continue;
+      if (nx < 0 || nx >= WORLD_W || ny < 0 || ny >= WORLD_H) continue;
+      let tile = world[nx][ny];
+      if (tile === AIR || tile === TUNNEL || tile === EX_TUNNEL || tile === GRASS) {
+        visited.add(key);
+        let newPath = [...cur.path, { x: nx, y: ny }];
+        if (nx === etx && ny === ety) return newPath;
+        open.push({ x: nx, y: ny, path: newPath });
+      }
+    }
+  }
+  return null; // no path found
+}
+
+// Check if player tile has a path to surface via air/tunnel
+function hasSurfaceConnection(px, py) {
+  let tx = Math.floor(px / T);
+  let ty = Math.floor(py / T);
+  // BFS upward to find air/surface
+  let open = [{ x: tx, y: ty }];
+  let visited = new Set();
+  visited.add(tx + ',' + ty);
+  let steps = 0;
+  while (open.length > 0 && steps < 500) {
+    let cur = open.shift();
+    steps++;
+    if (cur.y <= SURFACE_Y) return true;
+    let dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (let [dx, dy] of dirs) {
+      let nx = cur.x + dx, ny = cur.y + dy;
+      let key = nx + ',' + ny;
+      if (visited.has(key)) continue;
+      if (nx < 0 || nx >= WORLD_W || ny < 0 || ny >= WORLD_H) continue;
+      let tile = world[nx][ny];
+      if (tile === AIR || tile === TUNNEL || tile === EX_TUNNEL || tile === GRASS) {
+        visited.add(key);
+        if (ny <= SURFACE_Y) return true;
+        open.push({ x: nx, y: ny });
+      }
+    }
+  }
+  return false;
+}
+
+// -- Water flow simulation (simplified)
+let waterFlowTimer = 0;
+function simulateWater() {
+  waterFlowTimer++;
+  if (waterFlowTimer % 15 !== 0) return; // every 15 frames
+  for (let x = 1; x < WORLD_W - 1; x++) {
+    for (let y = WORLD_H - 2; y > SURFACE_Y; y--) {
+      if (world[x][y] === WATER) {
+        // Flow down
+        if (world[x][y+1] === TUNNEL || world[x][y+1] === AIR || world[x][y+1] === EX_TUNNEL) {
+          // Check if below is tunnel - fill it
+          if (y + 1 < WORLD_H - 1) {
+            world[x][y+1] = WATER;
+          }
+        }
+        // Flow sideways into tunnels
+        for (let dx of [-1, 1]) {
+          let nx = x + dx;
+          if (nx > 0 && nx < WORLD_W) {
+            if (world[nx][y] === TUNNEL || (world[nx][y] === AIR && y > SURFACE_Y)) {
+              // Only fill if there's water above or adjacent
+              if (Math.random() < 0.1) world[nx][y] = WATER;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// -- Rock gravity with wiggle delay
+let looseRocks = {}; // key "x,y" => { timer, x, y }
+let fallingRocks = new Set(); // tracks rocks mid-fall by "x,y" — these skip wiggle
+
+function simulateRocks(dt) {
+  // Scan for newly loose rocks (rock with open space below)
+  if (frameCount % 10 === 0) {
+    for (let x = 0; x < WORLD_W; x++) {
+      for (let y = WORLD_H - 3; y > SURFACE_Y; y--) {
+        if (world[x][y] === ROCK) {
+          let below = world[x][y+1];
+          let key = x + ',' + y;
+          if (below === AIR || below === TUNNEL || below === EX_TUNNEL) {
+            if (fallingRocks.has(key)) {
+              // Already falling — drop immediately (no wiggle)
+              if (!(key in looseRocks)) {
+                looseRocks[key] = { timer: 0, x, y };
+              }
+            } else if (!(key in looseRocks)) {
+              // First time loose — start wiggle timer
+              looseRocks[key] = { timer: V.rockFallDelay, x, y };
+            }
+          } else {
+            // Rock is supported — stop tracking
+            if (key in looseRocks) delete looseRocks[key];
+            fallingRocks.delete(key);
+          }
+        }
+      }
+    }
+  }
+
+  // Update loose rock timers and drop when ready
+  let toDelete = [];
+  for (let key in looseRocks) {
+    let lr = looseRocks[key];
+    lr.timer -= dt;
+    if (lr.timer <= 0) {
+      let x = lr.x, y = lr.y;
+      if (world[x][y] === ROCK) {
+        let below = world[x][y+1];
+        if (below === AIR || below === TUNNEL || below === EX_TUNNEL) {
+          world[x][y+1] = ROCK;
+          world[x][y] = TUNNEL;
+          spawnParticles(x * T + T/2, (y+1) * T, '#888', 4, 1);
+          if (!fallingRocks.has(key)) playRockFall(); // sound only on first drop
+          // Mark the NEW position as a falling rock (skip wiggle next scan)
+          let newKey = x + ',' + (y+1);
+          fallingRocks.add(newKey);
+          // Remove old key from falling set
+          fallingRocks.delete(key);
+          // Check if rock crushed a ferret
+          for (let f of ferrets) {
+            if (f.alive && Math.floor(f.x / T) === x && Math.floor(f.y / T) === y + 1) {
+              f.alive = false;
+              spawnParticles(f.x, f.y, '#a55', 8, 2);
+            }
+          }
+          // Check if rock hit player
+          let ptx = Math.floor(P.x / T), pty = Math.floor(P.y / T);
+          if (ptx === x && pty === y + 1) {
+            P.dead = true;
+            P.deathCause = 'crushed';
+          }
+        }
+      }
+      toDelete.push(key);
+    }
+  }
+  for (let key of toDelete) delete looseRocks[key];
+
+  // Clean up stale falling rocks (ones that have been sitting supported for a while)
+  if (frameCount % 60 === 0) {
+    for (let key of fallingRocks) {
+      let [rx, ry] = key.split(',').map(Number);
+      if (rx >= 0 && rx < WORLD_W && ry >= 0 && ry < WORLD_H) {
+        let below = ry + 1 < WORLD_H ? world[rx][ry+1] : BEDROCK;
+        if (below !== AIR && below !== TUNNEL && below !== EX_TUNNEL) {
+          fallingRocks.delete(key); // landed — no longer falling
+        }
+      }
+    }
+  }
+}
+
+// -- Particles
+function spawnParticles(x, y, color, count, speed) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * speed * 2,
+      vy: -Math.random() * speed * 2,
+      life: 0.5 + Math.random() * 0.5,
+      color,
+      size: 1 + Math.random() * 2,
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+// -- Initialize game
+function initGame() {
+  gameState = 'title';
+  gameTimer = 600;
+  frameCount = 0;
+  melodyIdx = 0;
+  particles = [];
+  looseRocks = {};
+  fallingRocks = new Set();
+  P = {
+    x: 25 * T, y: (SURFACE_Y - 1) * T, vx: 0, vy: 0,
+    stamina: 100, oxygen: 100,
+    underground: false, inWater: false,
+    fatigued: false, nearDeath: false, nearDeathTimer: 0,
+    danger: 0,
+    facing: 1, digging: false, jumping: false, onGround: false,
+    memCount: 0, dead: false, deathCause: '',
+    hopAnim: 0, digAnim: 0, hitFlash: 0,
+    _surfConn: true, _surfConnDirty: false,
+  };
+
+  generateWorld();
+  stopMusic();
+  popup = { text: '', timer: 0, color: '#ffd700' };
+}
+
+// -- Get tile at pixel coords
+function getTile(px, py) {
+  let tx = Math.floor(px / T), ty = Math.floor(py / T);
+  if (tx < 0 || tx >= WORLD_W || ty < 0 || ty >= WORLD_H) return BEDROCK;
+  return world[tx][ty];
+}
+
+function setTile(px, py, type) {
+  let tx = Math.floor(px / T), ty = Math.floor(py / T);
+  if (tx >= 0 && tx < WORLD_W && ty >= 0 && ty < WORLD_H) {
+    world[tx][ty] = type;
+  }
+}
+
+function isSolid(tile) {
+  return tile === DIRT || tile === ROCK || tile === BEDROCK || tile === GRASS;
+}
+
+// -- Update player
+function updatePlayer(dt) {
+  if (P.dead) return;
+
+  let ptx = Math.floor(P.x / T);
+  let pty = Math.floor(P.y / T);
+  let currentTile = getTile(P.x, P.y);
+  let belowTile = getTile(P.x, P.y + T);
+
+  P.underground = pty > SURFACE_Y;
+  P.inWater = currentTile === WATER;
+
+  // Near-death timer
+  if (P.nearDeath) {
+    P.nearDeathTimer -= dt;
+    if (P.nearDeathTimer <= 0) {
+      P.nearDeath = false;
+    }
+  }
+
+  // Fatigue check
+  if (P.stamina <= 0 && !P.fatigued) {
+    P.fatigued = true;
+    playFatigue();
+  }
+  if (P.fatigued) {
+    if (P.stamina >= V.fatigueThresh) {
+      P.fatigued = false;
+    }
+    // Regen while fatigued
+    if (P.underground) {
+      P.stamina = Math.min(100, P.stamina + V.stamRegenUG * dt * 60);
+    } else {
+      P.stamina = Math.min(100, P.stamina + V.stamRegenSurf * dt * 60);
+    }
+    // Oxygen still depletes underground while fatigued
+    if (P.underground) {
+      if (P._surfConnDirty || frameCount % 10 === 0) {
+        P._surfConn = hasSurfaceConnection(P.x, P.y);
+        P._surfConnDirty = false;
+      }
+      let oxyRate = P.inWater ? V.oxyDeplWater : V.oxyDepl;
+      if (!P._surfConn) oxyRate = V.oxyCutoff;
+      P.oxygen = Math.max(0, P.oxygen - oxyRate * dt * 60);
+      if (P.oxygen <= 0) {
+        P.dead = true;
+        P.deathCause = 'oxygen';
+      }
+    }
+    P.hitFlash = Math.max(0, P.hitFlash - dt);
+    return; // Can't move while fatigued
+  }
+
+  // Movement
+  let moveX = 0, moveY = 0;
+  if (keys['ArrowLeft'] || keys['KeyA']) { moveX = -1; P.facing = -1; }
+  if (keys['ArrowRight'] || keys['KeyD']) { moveX = 1; P.facing = 1; }
+  if (keys['ArrowUp'] || keys['KeyW']) moveY = -1;
+  if (keys['ArrowDown'] || keys['KeyS']) moveY = 1;
+
+  let speed = V.surfSpeed;
+  let moving = moveX !== 0 || moveY !== 0;
+
+  if (P.underground) {
+    // Underground movement
+    let tile = getTile(P.x, P.y);
+    if (tile === EX_TUNNEL) {
+      speed = V.exTunnelSpeed;
+    } else if (P.inWater) {
+      speed = V.swimSpeed;
+    } else {
+      speed = V.digSpeed;
+    }
+
+    let nx = P.x + moveX * speed;
+    let ny = P.y + moveY * speed;
+    let targetTile = getTile(nx, ny);
+    let targetTY = Math.floor(ny / T);
+
+    // Track old tile position for diagonal connectivity fix
+    let oldTX = Math.floor(P.x / T);
+    let oldTY = Math.floor(P.y / T);
+
+    // Surfacing: if moving up and we'd reach the GRASS/surface layer, emerge
+    if (moveY < 0 && targetTY <= SURFACE_Y) {
+      // Dig through the tile we're leaving
+      if (oldTX >= 0 && oldTX < WORLD_W && oldTY > SURFACE_Y && oldTY < WORLD_H) {
+        if (world[oldTX][oldTY] === DIRT) { world[oldTX][oldTY] = TUNNEL; P._surfConnDirty = true; }
+      }
+      // Place player on top of the surface (don't dig the grass)
+      P.x = moveX !== 0 ? nx : P.x;
+      P.y = (SURFACE_Y - 1) * T;
+      P.vy = 0;
+      P.onGround = true;
+      P.jumping = false;
+      P.underground = false;
+      spawnParticles(P.x, P.y + T, '#8B6914', 8, 1.5);
+      playSurface();
+    } else if (targetTile === BEDROCK) {
+      // Can't move through bedrock
+    } else if (targetTile === ROCK) {
+      // Can't dig rock
+    } else {
+      let newTX = Math.floor(nx / T);
+      let newTY = Math.floor(ny / T);
+
+      // DIAGONAL CONNECTIVITY FIX:
+      // If we moved to a new tile diagonally (both X and Y tile changed),
+      // also dig one intermediate tile so the BFS stays 4-connected.
+      if (newTX !== oldTX && newTY !== oldTY) {
+        // Dig the horizontal neighbor (oldTX->newTX on old row)
+        let midX = newTX, midY = oldTY;
+        if (midX >= 0 && midX < WORLD_W && midY > SURFACE_Y && midY < WORLD_H) {
+          let midTile = world[midX][midY];
+          if (midTile === DIRT || midTile === GRASS) {
+            world[midX][midY] = TUNNEL;
+            P._surfConnDirty = true;
+          }
+        }
+        // Also dig the vertical neighbor for robustness
+        let mid2X = oldTX, mid2Y = newTY;
+        if (mid2X >= 0 && mid2X < WORLD_W && mid2Y > SURFACE_Y && mid2Y < WORLD_H) {
+          let mid2Tile = world[mid2X][mid2Y];
+          if (mid2Tile === DIRT || mid2Tile === GRASS) {
+            world[mid2X][mid2Y] = TUNNEL;
+            P._surfConnDirty = true;
+          }
+        }
+      }
+
+      if (targetTile === DIRT || targetTile === GRASS) {
+        // Dig it — but only below the surface
+        if (newTX >= 0 && newTX < WORLD_W && newTY > SURFACE_Y && newTY < WORLD_H) {
+          world[newTX][newTY] = TUNNEL;
+          P._surfConnDirty = true;
+          P.digging = true;
+          P.digAnim = 0.2;
+          if (frameCount % 4 === 0) playDig();
+          spawnParticles(nx, ny, '#8B6914', 3, 0.8);
+        }
+      }
+      P.x = nx;
+      P.y = ny;
+    }
+
+    // Stamina depletion underground
+    if (moving) {
+      P.stamina = Math.max(0, P.stamina - V.stamDeplUG * dt * 60);
+    } else {
+      P.stamina = Math.min(100, P.stamina + V.stamRegenUG * dt * 60);
+    }
+
+    // Oxygen
+    let oxyRate = P.inWater ? V.oxyDeplWater : V.oxyDepl;
+    // Check surface connection — recheck frequently AND immediately after digging
+    if (P._surfConnDirty || frameCount % 10 === 0) {
+      P._surfConn = hasSurfaceConnection(P.x, P.y);
+      P._surfConnDirty = false;
+    }
+    if (P._surfConn === undefined) P._surfConn = true;
+    if (!P._surfConn) oxyRate = V.oxyCutoff;
+
+    if (moving) {
+      P.oxygen = Math.max(0, P.oxygen - oxyRate * dt * 60);
+    } else {
+      P.oxygen = Math.max(0, P.oxygen - oxyRate * 0.6 * dt * 60);
+    }
+    if (P.oxygen <= 0) {
+      P.dead = true;
+      P.deathCause = 'oxygen';
+    }
+
+    // Danger resets underground
+    P.danger = Math.max(0, P.danger - 0.02);
+
+  } else {
+    // Surface movement
+    // Horizontal
+    if (moveX !== 0) {
+      let nx = P.x + moveX * speed;
+      let ntile = getTile(nx, P.y);
+      let nbelow = getTile(nx, P.y + T/2);
+      if (!isSolid(ntile)) {
+        P.x = nx;
+        P.hopAnim = Math.sin(frameCount * 0.3) * 0.3;
+        if (frameCount % 12 === 0) playHop();
+      }
+    }
+
+    // Start burrowing
+    if (moveY > 0 && P.onGround) {
+      let btx = Math.floor(P.x / T);
+      // Dig through the grass/first dirt tile AND the one below it
+      let ty1 = SURFACE_Y;     // grass layer
+      let ty2 = SURFACE_Y + 1; // first dirt layer below
+      if (btx >= 0 && btx < WORLD_W && ty2 < WORLD_H) {
+        let t1 = world[btx][ty1];
+        let t2 = world[btx][ty2];
+        if (t1 === GRASS || t1 === DIRT || t1 === TUNNEL || t1 === EX_TUNNEL || t1 === WATER) {
+          if (t1 === GRASS || t1 === DIRT) world[btx][ty1] = TUNNEL;
+          if (t2 === DIRT) world[btx][ty2] = TUNNEL;
+          P.y = ty2 * T;
+          P.underground = true;
+          P.vy = 0;
+          spawnParticles(P.x, SURFACE_Y * T, '#8B6914', 5, 1);
+          playDig();
+          return;
+        }
+      }
+    }
+
+    // Jump
+    if ((keys['Space']) && P.onGround && !P.jumping) {
+      P.vy = -V.jumpPower;
+      P.jumping = true;
+      P.onGround = false;
+      playHop();
+    }
+
+    // Gravity
+    P.vy += V.gravity;
+    P.y += P.vy;
+
+    // Ground collision
+    let feetY = P.y + T/2;
+    let feetTile = getTile(P.x, feetY);
+    if (isSolid(feetTile) && P.vy >= 0) {
+      P.y = Math.floor(feetY / T) * T - T/2;
+      P.vy = 0;
+      P.onGround = true;
+      P.jumping = false;
+    } else {
+      P.onGround = false;
+    }
+
+    // Keep on surface level
+    if (P.y < (SURFACE_Y - 3) * T) P.y = (SURFACE_Y - 3) * T;
+
+    // Stamina
+    if (moving) {
+      P.stamina = Math.max(0, P.stamina - V.stamDeplSurf * dt * 60);
+    } else {
+      P.stamina = Math.min(100, P.stamina + V.stamRegenSurf * dt * 60);
+    }
+
+    // Oxygen regen on surface
+    P.oxygen = Math.min(100, P.oxygen + V.oxyRegen * dt * 60);
+
+    // Danger increases on surface
+    P.danger = Math.min(10, P.danger + V.hawkDangerRate * dt * 60);
+  }
+
+  P.digAnim = Math.max(0, P.digAnim - dt);
+  P.hitFlash = Math.max(0, P.hitFlash - dt);
+
+  // Bounds
+  P.x = Math.max(T, Math.min((WORLD_W - 1) * T, P.x));
+  P.y = Math.max(T, Math.min((WORLD_H - 2) * T, P.y));
+
+  // Collectibles
+  for (let c of carrots) {
+    if (!c.collected && Math.abs(P.x - c.x * T) < T && Math.abs(P.y - c.y * T) < T) {
+      c.collected = true;
+      P.stamina = Math.min(100, P.stamina + 25);
+      spawnParticles(c.x * T, c.y * T, '#ff8800', 5, 1);
+      playCarrot();
+    }
+  }
+
+  for (let m of memorabilia) {
+    if (!m.collected && Math.abs(P.x - m.x * T) < T && Math.abs(P.y - m.y * T) < T) {
+      m.collected = true;
+      P.memCount++;
+      P.stamina = 100;
+      P.oxygen = 100;
+      P.fatigued = false;
+      if (P.nearDeath) { P.nearDeath = false; P.nearDeathTimer = 0; }
+      spawnParticles(m.x * T, m.y * T, '#ffd700', 10, 2);
+      playMemory();
+      showPopup(`Memorabilia: ${P.memCount}/${W.memorabiliaCount} ❤ — ${MEM_MSGS[m.type]}`, 10);
+    }
+  }
+
+  // Check if reached end
+  if (ptx >= WORLD_W - 15) {
+    triggerEnding();
+  }
+}
+
+// -- Update hawks
+function updateHawks(dt) {
+  let HOME_X = 25 * T; // home burrow position
+  let SAFE_RADIUS = 10 * T; // 10 tiles safe zone
+  let playerNearHome = Math.abs(P.x - HOME_X) < SAFE_RADIUS;
+
+  for (let h of hawks) {
+    if (h.state === 'patrol') {
+      // Hawks actively drift toward the player's x position so they stay relevant
+      // But NOT if player is in the home safe zone
+      if (!playerNearHome) {
+        let dxToPlayer = P.x - h.x;
+        let trackSpeed = 0.6 + P.danger * 0.15; // faster tracking at higher danger
+        if (Math.abs(dxToPlayer) > 30) {
+          h.x += Math.sign(dxToPlayer) * trackSpeed;
+        }
+      }
+      // Add some natural drift / weaving
+      h.x += h.vx * 0.4;
+      h.y += Math.sin(frameCount * 0.02 + h.x * 0.01) * 0.3;
+
+      // If hawk gets way too far from player, reposition it ahead of the player
+      // But never reposition into the safe zone
+      let dxToPlayer = P.x - h.x;
+      if (Math.abs(dxToPlayer) > canvas.width / V.zoom * 1.5 && !playerNearHome) {
+        h.x = P.x + (Math.random() > 0.5 ? 1 : -1) * (100 + Math.random() * 200);
+        h.y = 20 + Math.random() * (SKY_H * T - 60);
+      }
+
+      // Keep in sky
+      h.y = Math.max(10, Math.min(SKY_H * T - 20, h.y));
+      if (h.x < 0) h.x = WORLD_W * T;
+      if (h.x > WORLD_W * T) h.x = 0;
+
+      // Decide to swoop — NEVER in the home safe zone
+      if (!P.underground && !P.dead && P.danger > 0.8 && !playerNearHome) {
+        let dist = Math.abs(h.x - P.x);
+        // Hawks within a wide range can initiate attacks
+        if (dist < canvas.width / V.zoom) {
+          let swoopChance = (P.danger / 10) * V.hawkFreq * dt;
+          if (Math.random() < swoopChance) {
+            h.state = 'glide';
+            h.glideTimer = V.hawkGlideDur;
+            // Position directly above the player to begin glide
+            h.x = P.x + (Math.random() - 0.5) * 30;
+            h.y = 20 + Math.random() * 30;
+            h.target = { x: P.x, y: P.y };
+            playHawkWind();
+          }
+        }
+      }
+    } else if (h.state === 'glide') {
+      // Glide directly above player — match player x movement
+      h.x += (P.x - h.x) * 0.15;
+      h.y += (SKY_H * T * 0.4 - h.y) * 0.05;
+      h.glideTimer -= dt;
+      if (h.glideTimer <= 0 || P.underground || playerNearHome) {
+        if (P.underground || playerNearHome) {
+          h.state = 'patrol';
+        } else {
+          h.state = 'swoop';
+          // Lead the target: aim ahead of where the player is moving
+          let leadX = P.x + P.facing * V.surfSpeed * 15;
+          h.target = { x: leadX, y: (SURFACE_Y - 1) * T };
+          playHawkScreech();
+        }
+      }
+    } else if (h.state === 'swoop') {
+      // Abort swoop if player reached safe zone
+      if (playerNearHome) {
+        h.state = 'patrol';
+        h.y = 20 + Math.random() * 30;
+        h.vx = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
+      } else {
+      // Dive toward lead target position, but also track current player pos
+      let swoopTargetX = h.target.x * 0.4 + P.x * 0.6; // blend between lead and current
+      let swoopTargetY = (SURFACE_Y - 1) * T;
+      h.x += (swoopTargetX - h.x) * 0.12;
+      h.y += (swoopTargetY - h.y) * 0.12;
+
+      // Check hit — slightly generous hitbox
+      if (Math.abs(h.x - P.x) < T * 2 && Math.abs(h.y - P.y) < T * 2) {
+        if (!P.underground && !P.dead) {
+          if (P.nearDeath) {
+            P.dead = true;
+            P.deathCause = 'hawk';
+          } else {
+            P.stamina = Math.max(0, P.stamina - 50);
+            P.nearDeath = true;
+            P.nearDeathTimer = V.nearDeathDur;
+            P.hitFlash = 0.5;
+            playHit();
+          }
+        }
+      }
+
+      // After swooping past ground level, climb back up to patrol
+      if (h.y > (SURFACE_Y - 2) * T) {
+        h.state = 'patrol';
+        h.y = 20 + Math.random() * 30;
+        h.vx = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5);
+      }
+      } // end else (not near home)
+    }
+  }
+}
+
+// -- Update ferrets
+function updateFerrets(dt) {
+  for (let f of ferrets) {
+    if (!f.alive) continue;
+
+    let ftx = Math.floor(f.x / T), fty = Math.floor(f.y / T);
+
+    if (f.state === 'patrol') {
+      // Wander through tunnels
+      f.pathTimer -= dt;
+      if (f.pathTimer <= 0 || f.path.length === 0) {
+        // Pick random tunnel tile nearby
+        let targets = [];
+        for (let dx = -15; dx <= 15; dx++) {
+          for (let dy = -15; dy <= 15; dy++) {
+            let nx = ftx + dx, ny = fty + dy;
+            if (nx > 0 && nx < WORLD_W && ny > SURFACE_Y && ny < WORLD_H) {
+              if (world[nx][ny] === TUNNEL || world[nx][ny] === EX_TUNNEL) {
+                targets.push({ x: nx, y: ny });
+              }
+            }
+          }
+        }
+        if (targets.length > 0) {
+          let t = targets[Math.floor(Math.random() * targets.length)];
+          f.path = findPath(ftx, fty, t.x, t.y) || [];
+        }
+        f.pathTimer = 2;
+      }
+
+      // Check if player is nearby and in tunnels
+      let dist = Math.sqrt((P.x - f.x) ** 2 + (P.y - f.y) ** 2);
+      if (dist < T * 20 && P.underground && !P.dead) {
+        f.state = 'chase';
+        if (dist < T * 10) playFerretHiss();
+      }
+
+    } else if (f.state === 'chase') {
+      // Chase player through tunnels
+      let ptx = Math.floor(P.x / T), pty = Math.floor(P.y / T);
+      f.pathTimer -= dt;
+      if (f.pathTimer <= 0) {
+        f.path = findPath(ftx, fty, ptx, pty, 150) || [];
+        f.pathTimer = 0.5;
+      }
+
+      if (!P.underground) {
+        // Player surfaced - flee!
+        f.state = 'flee';
+        f.path = [];
+      }
+
+      // Check catch
+      let dist = Math.sqrt((P.x - f.x) ** 2 + (P.y - f.y) ** 2);
+      if (dist < T * 0.8 && !P.dead) {
+        P.dead = true;
+        P.deathCause = 'ferret';
+      }
+    } else if (f.state === 'flee') {
+      // Flee left
+      f.x -= V.ferretSpeed * 2;
+      if (f.x < 0) f.alive = false;
+      return;
+    }
+
+    // Follow path
+    if (f.path && f.path.length > 0) {
+      let next = f.path[0];
+      let tx = next.x * T + T/2, ty = next.y * T + T/2;
+      let dx = tx - f.x, dy = ty - f.y;
+      let d = Math.sqrt(dx*dx + dy*dy);
+      let spd = f.state === 'chase' ? V.ferretSpeed * 1.2 : V.ferretSpeed * 0.5;
+      if (d > 1) {
+        f.x += (dx / d) * spd;
+        f.y += (dy / d) * spd;
+      } else {
+        f.path.shift();
+      }
+    }
+  }
+}
+
+// -- Trigger ending
+function triggerEnding() {
+  if (gameState !== 'playing') return;
+  gameState = 'ending';
+  stopMusic();
+}
+
+// -- Camera
+function updateCamera() {
+  let vw = canvas.width / V.zoom;
+  let vh = canvas.height / V.zoom;
+  let targetX = P.x - vw / 2 + P.facing * 40;
+  let targetY = P.y - vh / 2;
+  camera.x += (targetX - camera.x) * 0.08;
+  camera.y += (targetY - camera.y) * 0.08;
+  camera.x = Math.max(0, Math.min(WORLD_W * T - vw, camera.x));
+  camera.y = Math.max(0, Math.min(WORLD_H * T - vh, camera.y));
+}
+
+// -- Drawing functions
+function drawSky() {
+  let timeProgress = 1 - (gameTimer / 600); // 0 to 1
+  // Sky gradient changes over time
+  let topR = Math.floor(80 + timeProgress * 100);
+  let topG = Math.floor(150 - timeProgress * 80);
+  let topB = Math.floor(220 - timeProgress * 100);
+  let botR = Math.floor(170 + timeProgress * 60);
+  let botG = Math.floor(200 - timeProgress * 50);
+  let botB = Math.floor(230 - timeProgress * 80);
+
+  let grad = ctx.createLinearGradient(0, -camera.y, 0, SKY_H * T - camera.y);
+  grad.addColorStop(0, `rgb(${topR},${topG},${topB})`);
+  grad.addColorStop(1, `rgb(${botR},${botG},${botB})`);
+  ctx.fillStyle = grad;
+  let vw = canvas.width / V.zoom, vh = canvas.height / V.zoom;
+  ctx.fillRect(0, 0, vw, Math.max(0, SKY_H * T - camera.y));
+
+  // Clouds (parallax)
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for (let i = 0; i < 8; i++) {
+    let cx = ((i * 500 + frameCount * 0.15) % (WORLD_W * T + 200)) - 100 - camera.x * 0.3;
+    let cy = 20 + (i % 3) * 30 + Math.sin(i * 2) * 15 - camera.y * 0.3;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 30 + i * 5, 10 + i * 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function getTileColor(tile, x, y) {
+  let depth = y - SURFACE_Y;
+  switch (tile) {
+    case DIRT: {
+      let shade = depth > 40 ? 25 : depth > 20 ? 40 : 55;
+      let r = 100 + shade + ((x * 7 + y * 13) % 15);
+      let g = 65 + shade * 0.6 + ((x * 3 + y * 11) % 10);
+      let b = 20 + ((x * 5 + y * 9) % 10);
+      return `rgb(${r},${g},${b})`;
+    }
+    case GRASS: return `rgb(${60 + ((x*7)%20)},${140 + ((x*3)%30)},${40 + ((x*11)%15)})`;
+    case ROCK: return `rgb(${120 + ((x*5+y*3)%20)},${120 + ((x*7+y*5)%15)},${125 + ((x*3+y*7)%15)})`;
+    case WATER: return `rgba(40,100,${200 + Math.floor(Math.sin(frameCount*0.05+x+y)*20)},0.7)`;
+    case TUNNEL: return `rgb(${40 + depth * 0.5},${25 + depth * 0.3},${15})`;
+    case EX_TUNNEL: return `rgb(${70 + Math.floor(Math.sin(frameCount*0.02+x)*5)},${55},${25})`;
+    case BEDROCK: return '#333';
+    default: return null;
+  }
+}
+
+function drawWorld() {
+  let vw = canvas.width / V.zoom, vh = canvas.height / V.zoom;
+  let startX = Math.floor(camera.x / T);
+  let startY = Math.floor(camera.y / T);
+  let endX = Math.min(WORLD_W, startX + Math.ceil(vw / T) + 2);
+  let endY = Math.min(WORLD_H, startY + Math.ceil(vh / T) + 2);
+
+  for (let x = startX; x < endX; x++) {
+    for (let y = startY; y < endY; y++) {
+      let tile = world[x][y];
+      if (tile === AIR) continue;
+      let color = getTileColor(tile, x, y);
+      if (!color) continue;
+
+      let sx = x * T - camera.x;
+      let sy = y * T - camera.y;
+
+      // Wiggle loose rocks
+      if (tile === ROCK) {
+        let rkey = x + ',' + y;
+        if (rkey in looseRocks) {
+          let lr = looseRocks[rkey];
+          let intensity = 1 - (lr.timer / V.rockFallDelay); // 0→1 as it gets closer to falling
+          let wiggle = Math.sin(frameCount * 0.5 + x * 3) * (0.5 + intensity * 1.5);
+          sx += wiggle;
+          // Small dust particles while wiggling
+          if (frameCount % 8 === 0) {
+            spawnParticles(x * T + T/2, (y+1) * T, '#aaa', 1, 0.3);
+          }
+        }
+      }
+
+      ctx.fillStyle = color;
+      ctx.fillRect(sx, sy, T + 0.5, T + 0.5);
+
+      // Ex-tunnel decorations
+      if (tile === EX_TUNNEL) {
+        // Warm glow
+        ctx.fillStyle = 'rgba(255,200,100,0.08)';
+        ctx.fillRect(sx - 1, sy - 1, T + 2, T + 2);
+        // Small hearts/paw prints
+        if ((x + y) % 12 === 0) {
+          ctx.fillStyle = 'rgba(255,150,150,0.4)';
+          ctx.fillText('♥', sx + 2, sy + 6);
+        }
+      }
+
+      // Surface grass details
+      if (tile === GRASS) {
+        ctx.fillStyle = `rgb(${40 + ((x*13)%30)},${160 + ((x*7)%30)},${30})`;
+        ctx.fillRect(sx, sy, T, 2);
+        // Grass blades
+        if (x % 3 === 0) {
+          ctx.fillStyle = '#4a8';
+          ctx.fillRect(sx + 2, sy - 2, 1, 3);
+          ctx.fillRect(sx + 5, sy - 3, 1, 4);
+        }
+      }
+
+      // Water animation
+      if (tile === WATER) {
+        let wave = Math.sin(frameCount * 0.08 + x * 0.5) * 1;
+        ctx.fillStyle = 'rgba(100,180,255,0.2)';
+        ctx.fillRect(sx, sy + wave, T, 2);
+      }
+    }
+  }
+
+  // Surface decorations (bushes, flowers)
+  for (let x = startX; x < endX; x++) {
+    if (x % 7 === 0 && world[x][SURFACE_Y] === GRASS) {
+      let sx = x * T - camera.x;
+      let sy = SURFACE_Y * T - camera.y;
+      // Bush
+      ctx.fillStyle = '#3a7';
+      ctx.fillRect(sx - 2, sy - 4, 6, 4);
+      ctx.fillRect(sx, sy - 6, 3, 3);
+    }
+    if (x % 11 === 0 && world[x][SURFACE_Y] === GRASS) {
+      let sx = x * T - camera.x;
+      let sy = SURFACE_Y * T - camera.y;
+      // Flower
+      ctx.fillStyle = ['#f66', '#ff6', '#f6f', '#6ff'][x % 4];
+      ctx.fillRect(sx + 2, sy - 3, 3, 3);
+      ctx.fillStyle = '#3a5';
+      ctx.fillRect(sx + 3, sy - 1, 1, 3);
+    }
+  }
+}
+
+function drawCarrots() {
+  for (let c of carrots) {
+    if (c.collected) continue;
+    let sx = c.x * T - camera.x;
+    let sy = c.y * T - camera.y;
+    if (sx < -T || sx > canvas.width/V.zoom + T || sy < -T || sy > canvas.height/V.zoom + T) continue;
+    // Orange triangle
+    ctx.fillStyle = '#f80';
+    ctx.beginPath();
+    ctx.moveTo(sx + 2, sy);
+    ctx.lineTo(sx + 6, sy);
+    ctx.lineTo(sx + 4, sy + 8);
+    ctx.closePath();
+    ctx.fill();
+    // Green top
+    ctx.fillStyle = '#4a4';
+    ctx.fillRect(sx + 2, sy - 2, 4, 3);
+  }
+}
+
+function drawMemorabilia() {
+  for (let m of memorabilia) {
+    if (m.collected) continue;
+    let sx = m.x * T - camera.x;
+    let sy = m.y * T - camera.y;
+    if (sx < -20 || sx > canvas.width/V.zoom + 20 || sy < -20 || sy > canvas.height/V.zoom + 20) continue;
+
+    // Golden glow
+    let glow = Math.sin(frameCount * 0.05) * 0.2 + 0.5;
+    ctx.fillStyle = `rgba(255,215,0,${glow * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(sx + 4, sy + 4, 8 + Math.sin(frameCount * 0.03) * 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Item sprite (simplified icons)
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(sx + 1, sy + 1, 6, 6);
+    ctx.fillStyle = '#fff';
+    ctx.font = '6px monospace';
+    let icons = ['📷', '🌸', '🥕', '🎵', '💌', '💎', '🗺', '🍀'];
+    // Fallback to simple shapes
+    ctx.fillStyle = '#fff8dc';
+    ctx.fillRect(sx + 2, sy + 2, 4, 4);
+
+    // Sparkle particles
+    if (frameCount % 20 === 0) {
+      spawnParticles(sx + camera.x + 4, sy + camera.y + 4, '#ffd700', 1, 0.5);
+    }
+  }
+}
+
+function drawBunny() {
+  let sx = P.x - camera.x;
+  let sy = P.y - camera.y;
+  let f = P.facing;
+
+  // Hit flash
+  if (P.hitFlash > 0 && Math.floor(P.hitFlash * 20) % 2 === 0) {
+    ctx.globalAlpha = 0.5;
+  }
+
+  // Near-death visual
+  if (P.nearDeath) {
+    if (frameCount % 10 < 5) ctx.globalAlpha = 0.7;
+  }
+
+  // Body
+  ctx.fillStyle = P.fatigued ? '#aaa' : '#f5f0e0';
+  let hopOffset = P.underground ? 0 : P.hopAnim * 3;
+  ctx.fillRect(sx - 3, sy - 5 + hopOffset, 7, 6);
+
+  // Head
+  ctx.fillRect(sx - 2 + f, sy - 8 + hopOffset, 5, 4);
+
+  // Ears
+  ctx.fillRect(sx - 1 + f, sy - 12 + hopOffset, 2, 5);
+  ctx.fillRect(sx + 2 + f, sy - 12 + hopOffset, 2, 5);
+  // Inner ear
+  ctx.fillStyle = '#f9c';
+  ctx.fillRect(sx + f, sy - 11 + hopOffset, 1, 3);
+  ctx.fillRect(sx + 2.5 + f, sy - 11 + hopOffset, 1, 3);
+
+  // Eye
+  ctx.fillStyle = '#222';
+  ctx.fillRect(sx + (f > 0 ? 2 : -1), sy - 7 + hopOffset, 1, 1);
+
+  // Tail
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(sx - 4 * f, sy - 3 + hopOffset, 2, 2);
+
+  // Feet
+  ctx.fillStyle = '#ddc';
+  ctx.fillRect(sx - 2, sy + 1 + hopOffset, 2, 1);
+  ctx.fillRect(sx + 1, sy + 1 + hopOffset, 2, 1);
+
+  // Dig animation
+  if (P.digAnim > 0 && P.underground) {
+    ctx.fillStyle = '#8B6914';
+    for (let i = 0; i < 3; i++) {
+      let dx = (Math.random() - 0.5) * 8;
+      let dy = (Math.random() - 0.5) * 8;
+      ctx.fillRect(sx + dx, sy + dy, 2, 2);
+    }
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function drawHawks() {
+  for (let h of hawks) {
+    let sx = h.x - camera.x;
+    let sy = h.y - camera.y;
+    if (sx < -50 || sx > canvas.width/V.zoom + 50) continue;
+
+    // Shadow on ground when gliding
+    if (h.state === 'glide') {
+      let shadowY = SURFACE_Y * T - camera.y;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(sx, shadowY, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Bird silhouette
+    ctx.fillStyle = h.state === 'swoop' ? '#400' : '#332';
+    let wingFlap = Math.sin(frameCount * 0.15) * 5;
+    // Body
+    ctx.fillRect(sx - 3, sy - 1, 7, 3);
+    // Wings
+    ctx.beginPath();
+    ctx.moveTo(sx - 3, sy);
+    ctx.lineTo(sx - 10, sy - 3 + wingFlap);
+    ctx.lineTo(sx - 5, sy);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(sx + 4, sy);
+    ctx.lineTo(sx + 11, sy - 3 - wingFlap);
+    ctx.lineTo(sx + 6, sy);
+    ctx.fill();
+    // Head
+    ctx.fillRect(sx + 3, sy - 2, 3, 2);
+    // Eye
+    ctx.fillStyle = '#ff0';
+    ctx.fillRect(sx + 4, sy - 2, 1, 1);
+  }
+}
+
+function drawFerrets() {
+  for (let f of ferrets) {
+    if (!f.alive) continue;
+    let sx = f.x - camera.x;
+    let sy = f.y - camera.y;
+    if (sx < -20 || sx > canvas.width/V.zoom + 20 || sy < -20 || sy > canvas.height/V.zoom + 20) continue;
+
+    // Slinky body
+    ctx.fillStyle = '#6B3A2A';
+    ctx.fillRect(sx - 5, sy - 2, 10, 4);
+    // Head
+    ctx.fillRect(sx + 4, sy - 3, 4, 4);
+    // Eyes
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(sx + 6, sy - 2, 1, 1);
+    // Tail
+    ctx.fillStyle = '#5A2A1A';
+    ctx.fillRect(sx - 8, sy - 1, 4, 2);
+  }
+}
+
+function drawParticles() {
+  for (let p of particles) {
+    let sx = p.x - camera.x;
+    let sy = p.y - camera.y;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillRect(sx, sy, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  let pad = 10;
+  let barW = 120, barH = 10;
+
+  // Stamina bar
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(pad, pad, barW + 2, barH + 2);
+  let stamColor = P.fatigued ? '#f44' : (P.stamina < 30 ? '#fa0' : '#4c4');
+  if (P.fatigued && frameCount % 20 < 10) stamColor = '#f88';
+  ctx.fillStyle = stamColor;
+  ctx.fillRect(pad + 1, pad + 1, barW * P.stamina / 100, barH);
+  ctx.fillStyle = '#fff';
+  ctx.font = '8px monospace';
+  ctx.fillText('STA', pad + 3, pad + 9);
+  if (P.fatigued) {
+    ctx.fillStyle = '#f44';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('FATIGUED', pad + barW + 8, pad + 9);
+  }
+
+  // Oxygen bar (only underground)
+  if (P.underground) {
+    let oy = pad + barH + 6;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(pad, oy, barW + 2, barH + 2);
+    let oxyColor = P.oxygen < 25 ? '#f44' : (P.oxygen < 50 ? '#48f' : '#4af');
+    if (P.oxygen < 25 && frameCount % 10 < 5) oxyColor = '#f00';
+    if (P._surfConn === false) oxyColor = frameCount % 8 < 4 ? '#f00' : '#800';
+    ctx.fillStyle = oxyColor;
+    ctx.fillRect(pad + 1, oy + 1, barW * P.oxygen / 100, barH);
+    ctx.fillStyle = '#fff';
+    ctx.font = '8px monospace';
+    ctx.fillText('O₂', pad + 3, oy + 9);
+    if (P._surfConn === false) {
+      ctx.fillStyle = '#f44';
+      ctx.font = 'bold 8px monospace';
+      ctx.fillText('CUT OFF!', pad + barW + 8, oy + 9);
+    }
+  }
+
+  // Timer
+  let minutes = Math.floor(gameTimer / 60);
+  let seconds = Math.floor(gameTimer % 60);
+  let timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  ctx.font = 'bold 14px monospace';
+  let tx = canvas.width / 2 - 25;
+  if (gameTimer < 120) {
+    ctx.fillStyle = gameTimer < 30 && frameCount % 20 < 10 ? '#f00' : '#f44';
+  } else {
+    ctx.fillStyle = '#fff';
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(tx - 4, 6, 58, 18);
+  ctx.fillStyle = gameTimer < 120 ? (gameTimer < 30 && frameCount % 20 < 10 ? '#f00' : '#f55') : '#fff';
+  ctx.fillText(timeStr, tx, 20);
+
+  // Near-death indicator
+  if (P.nearDeath) {
+    ctx.fillStyle = '#f44';
+    ctx.font = 'bold 10px monospace';
+    ctx.fillText(`⚠ DANGER (${Math.ceil(P.nearDeathTimer)}s)`, canvas.width / 2 - 50, 40);
+  }
+
+  // Popup
+  if (popup.timer > 0) {
+    let alpha = popup.timer < 1 ? popup.timer : 1;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(40,30,10,0.8)';
+    let popY = isMobile ? canvas.height - 180 : canvas.height - 60;
+    let popW = Math.min(canvas.width - 40, ctx.measureText(popup.text).width + 30);
+    ctx.fillRect(canvas.width / 2 - popW / 2, popY, popW, 30);
+    ctx.fillStyle = popup.color;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(popup.text, canvas.width / 2, popY + 20);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawStartBurrow() {
+  // Starting home
+  let hx = 22 * T - camera.x;
+  let hy = SURFACE_Y * T - camera.y;
+  ctx.fillStyle = '#654';
+  ctx.fillRect(hx - 6, hy - 10, 14, 10);
+  ctx.fillStyle = '#876';
+  ctx.beginPath();
+  ctx.moveTo(hx - 8, hy - 10);
+  ctx.lineTo(hx + 1, hy - 18);
+  ctx.lineTo(hx + 10, hy - 10);
+  ctx.closePath();
+  ctx.fill();
+  // Sign
+  ctx.fillStyle = '#985';
+  ctx.fillRect(hx + 16, hy - 12, 2, 12);
+  ctx.fillRect(hx + 12, hy - 14, 12, 8);
+  ctx.fillStyle = '#fff';
+  ctx.font = '5px monospace';
+  ctx.fillText('Home', hx + 13, hy - 9);
+}
+
+function drawEndBurrow() {
+  let ex = (WORLD_W - 12) * T - camera.x;
+  let ey = SURFACE_Y * T - camera.y;
+  ctx.fillStyle = '#765';
+  ctx.fillRect(ex - 6, ey - 10, 14, 10);
+  ctx.fillStyle = '#987';
+  ctx.beginPath();
+  ctx.moveTo(ex - 8, ey - 10);
+  ctx.lineTo(ex + 1, ey - 18);
+  ctx.lineTo(ex + 10, ey - 10);
+  ctx.closePath();
+  ctx.fill();
+  // Heart on door
+  ctx.fillStyle = '#f66';
+  ctx.font = '8px serif';
+  ctx.fillText('♥', ex - 2, ey - 3);
+  // Mailbox
+  ctx.fillStyle = '#985';
+  ctx.fillRect(ex + 16, ey - 8, 2, 8);
+  ctx.fillRect(ex + 14, ey - 10, 8, 5);
+}
+
+// -- Underground darkness/lighting
+function drawUndergroundLighting() {
+  if (!P.underground) return;
+  // Vignette effect when deep underground
+  let depth = Math.floor(P.y / T) - SURFACE_Y;
+  let darkness = Math.min(0.6, depth * 0.01);
+  if (darkness > 0) {
+    let cx = canvas.width / 2;
+    let cy = canvas.height / 2;
+    let grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, Math.max(canvas.width, canvas.height) * 0.5);
+    grad.addColorStop(0, `rgba(0,0,0,0)`);
+    grad.addColorStop(0.6, `rgba(0,0,0,${darkness * 0.5})`);
+    grad.addColorStop(1, `rgba(0,0,0,${darkness})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+// -- Screen effects
+function drawScreenEffects() {
+  // Red flash on hit
+  if (P.hitFlash > 0) {
+    ctx.fillStyle = `rgba(255,0,0,${P.hitFlash * 0.3})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  // Oxygen critical - heartbeat overlay
+  if (P.underground && P.oxygen < 20) {
+    let pulse = Math.sin(frameCount * 0.15) * 0.15;
+    ctx.fillStyle = `rgba(0,0,100,${0.1 + pulse})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (frameCount % 40 === 0) playHeartbeat();
+  }
+  // Near death - screen edges red
+  if (P.nearDeath) {
+    let grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width * 0.3,
+                                         canvas.width/2, canvas.height/2, canvas.width * 0.5);
+    grad.addColorStop(0, 'rgba(255,0,0,0)');
+    grad.addColorStop(1, 'rgba(255,0,0,0.15)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+// -- Title screen
+function drawTitleScreen() {
+  // Sunset sky
+  let grad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.5);
+  grad.addColorStop(0, '#2a1a3a');
+  grad.addColorStop(0.5, '#cc5533');
+  grad.addColorStop(1, '#ffaa44');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height * 0.55);
+
+  // Sun
+  ctx.fillStyle = '#ffdd44';
+  ctx.beginPath();
+  ctx.arc(canvas.width * 0.65, canvas.height * 0.35, 40, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ground
+  ctx.fillStyle = '#3a5a2a';
+  ctx.fillRect(0, canvas.height * 0.5, canvas.width, 10);
+
+  // Underground cross-section
+  let ugY = canvas.height * 0.5 + 10;
+  ctx.fillStyle = '#6B4A2A';
+  ctx.fillRect(0, ugY, canvas.width, canvas.height - ugY);
+
+  // Tunnels
+  ctx.fillStyle = '#4A2A1A';
+  for (let i = 0; i < 5; i++) {
+    let tx = 60 + i * 160 + Math.sin(i * 1.5) * 30;
+    let ty = ugY + 20 + i * 20;
+    ctx.fillRect(tx, ty, 80 + i * 10, 12);
+  }
+  // Ex-tunnel
+  ctx.fillStyle = '#7A5A2A';
+  ctx.fillRect(100, ugY + 80, 200, 12);
+  ctx.fillStyle = 'rgba(255,200,100,0.3)';
+  ctx.fillRect(100, ugY + 80, 200, 12);
+
+  // Bunny silhouette on hill
+  let bx = canvas.width * 0.4;
+  let by = canvas.height * 0.48;
+  ctx.fillStyle = '#1a1a2a';
+  // Body
+  ctx.fillRect(bx - 5, by - 8, 10, 10);
+  // Head
+  ctx.fillRect(bx - 3, by - 14, 8, 7);
+  // Ears
+  ctx.fillRect(bx - 1, by - 22, 3, 9);
+  ctx.fillRect(bx + 3, by - 22, 3, 9);
+
+  // Title
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffddaa';
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText('Burrowing In Guilt', canvas.width / 2, canvas.height * 0.18);
+
+  // Version
+  ctx.fillStyle = '#776655';
+  ctx.font = '9px monospace';
+  ctx.fillText(VERSION, canvas.width / 2, canvas.height * 0.22);
+
+  // Subtitle
+  ctx.fillStyle = '#ffaa77';
+  ctx.font = '11px monospace';
+  ctx.fillText('A journey through memory and earth', canvas.width / 2, canvas.height * 0.26);
+
+  // Start prompt — menu options
+  let opts = ['Start Game', 'How to Play'];
+  for (let i = 0; i < opts.length; i++) {
+    let selected = titleSelection === i;
+    let oy = canvas.height * 0.78 + i * 28;
+    ctx.font = selected ? 'bold 15px monospace' : '13px monospace';
+    ctx.fillStyle = selected ? '#fff' : '#aa9977';
+    let arrow = selected ? '▸ ' : '  ';
+    ctx.fillText(arrow + opts[i], canvas.width / 2, oy);
+  }
+
+  ctx.fillStyle = '#998866';
+  ctx.font = '9px monospace';
+  ctx.fillText('↑↓ select  ·  ENTER confirm', canvas.width / 2, canvas.height * 0.95);
+
+  ctx.textAlign = 'left';
+}
+
+// -- Tutorial screen
+function drawTutorial() {
+  ctx.fillStyle = 'rgba(0,0,0,0.9)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffddaa';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('CONTROLS', canvas.width / 2, 40);
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#ddd';
+  let lines = [
+    '← → ↑ ↓  or  WASD — Move',
+    'SPACE — Jump (surface only)',
+    '↓ on surface — Start burrowing',
+    '↑ near surface — Emerge from underground',
+    '',
+    'P — Pause  |  R — Restart  |  T — Debug',
+    '',
+    '— TIPS —',
+    'Stay underground to hide from hawks',
+    'But watch your oxygen! Surface to breathe',
+    'Ferrets hunt you in tunnels — lure them up!',
+    'Collect memorabilia deep underground',
+    'Reach the burrow on the right before time runs out',
+    '',
+    '"It\'s been weeks. You miss them.',
+    'Time to make things right."',
+  ];
+  let ly = 80;
+  for (let l of lines) {
+    ctx.fillStyle = l.startsWith('"') ? '#ffa' : (l.startsWith('—') ? '#f96' : '#ccc');
+    ctx.fillText(l, canvas.width / 2, ly);
+    ly += 18;
+  }
+
+  let blink = Math.sin(frameCount * 0.05) > 0;
+  if (blink) {
+    ctx.fillStyle = '#fff';
+    ctx.font = '13px monospace';
+    ctx.fillText('PRESS ENTER TO BEGIN', canvas.width / 2, canvas.height - 30);
+  }
+  ctx.textAlign = 'left';
+}
+
+// -- How to Play screen
+let howtoScroll = 0;
+function drawHowTo() {
+  ctx.fillStyle = '#0d0a06';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Scroll with up/down
+  if (keys['ArrowDown'] || keys['KeyS']) howtoScroll += 3;
+  if (keys['ArrowUp'] || keys['KeyW']) howtoScroll -= 3;
+  howtoScroll = Math.max(0, howtoScroll);
+
+  ctx.save();
+  ctx.translate(0, -howtoScroll);
+
+  let cx = canvas.width / 2;
+  ctx.textAlign = 'center';
+  let y = 36;
+  const gap = 16;
+
+  function heading(text) {
+    ctx.fillStyle = '#ffcc66';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText(text, cx, y);
+    y += gap + 4;
+  }
+  function line(text, color='#ccc') {
+    ctx.fillStyle = color;
+    ctx.font = '10px monospace';
+    ctx.fillText(text, cx, y);
+    y += gap - 2;
+  }
+  function blank() { y += 8; }
+
+  heading('🐇  HOW TO PLAY  🐇');
+  blank();
+
+  heading('— OBJECTIVE —');
+  line('Reach your ex\'s burrow on the RIGHT side of the map');
+  line('before the 10-minute timer runs out.');
+  line('Collect memorabilia hidden deep underground');
+  line('for a better ending. There are 8 total.');
+  blank();
+
+  heading('— THE WORLD —');
+  line('The world has two layers: surface and underground.');
+  line('SURFACE: Fast travel, carrots, but hawks attack you.', '#8d8');
+  line('UNDERGROUND: Safe from hawks, but slower movement.', '#8ad');
+  line('Watch your oxygen — it drains while underground!', '#8ad');
+  line('Surface to breathe. Oxygen refills instantly up top.', '#8ad');
+  blank();
+
+  heading('— SURFACE DANGER —');
+  line('Hawks patrol the sky. The longer you stay on the');
+  line('surface, the more aggressively they attack.');
+  line('A hawk will glide above you (casting a shadow)');
+  line('for ~1 second before swooping. Dive underground!');
+  line('1st hit: Lose stamina, enter near-death (10s window).', '#f88');
+  line('2nd hit in that window: Game over.', '#f44');
+  blank();
+
+  heading('— UNDERGROUND —');
+  line('Press DOWN to burrow. Move in all 4 directions.');
+  line('Digging is slow (~40% surface speed) & costs stamina.');
+  line('You leave tunnels behind as you dig.');
+  blank();
+  line('Golden tunnels = old tunnels dug with your ex.', '#fda');
+  line('Move through them at FULL speed — like highways!', '#fda');
+  line('The deepest ones contain memorabilia.', '#fda');
+  blank();
+
+  heading('— OXYGEN —');
+  line('Depletes while underground. Surfaces refills it.');
+  line('Depletes FASTER when swimming through water.');
+  line('If your tunnel to the surface gets blocked');
+  line('(by water or falling rocks), it drains at 3x!', '#f88');
+  line('Oxygen = 0 means death.', '#f44');
+  blank();
+
+  heading('— STAMINA —');
+  line('Depletes while moving, faster underground.');
+  line('At 0: you freeze up (FATIGUED) until it regens to 10%.');
+  line('Being fatigued underground is dangerous — oxygen', '#fa8');
+  line('keeps draining while you can\'t move!', '#fa8');
+  line('Eat carrots (orange ▼ on surface) to restore 25%.', '#f80');
+  blank();
+
+  heading('— FERRETS (Underground) —');
+  line('Brown creatures with red eyes in tunnels.', '#c66');
+  line('They chase you through existing tunnels — INSTANT KILL.', '#f44');
+  line('Escape strategies:');
+  line('  • Lure them to the surface (they flee from hawks)');
+  line('  • Dig new tunnels to escape');
+  line('  • Drop rocks on them or block the tunnel');
+  blank();
+
+  heading('— ROCKS & WATER —');
+  line('Gray blocks: can\'t dig through them.');
+  line('Dig UNDER a rock and it falls (gravity).');
+  line('Falling rocks crush ferrets (or you!).', '#fa8');
+  line('Water pockets flood into your tunnels.', '#8af');
+  line('You can swim through but oxygen drains fast.', '#8af');
+  blank();
+
+  heading('— MEMORABILIA —');
+  line('Glowing items scattered across the world.');
+  line('They can appear on any layer — surface to deep zone.');
+  line('Each one is a memory of your relationship.');
+  line('More memorabilia = a better ending:');
+  line('  100%: Perfect Reunion  ♥', '#ffd700');
+  line('  75%+: A Beautiful Try', '#fda');
+  line('  38%+: A Good Start', '#aba');
+  line('  <38%: Just Showing Up', '#aaa');
+  line('  Timer expired: Too Late...', '#888');
+  blank();
+
+  heading('— CONTROLS —');
+  line('Arrow keys / WASD — Move');
+  line('SPACE — Jump (surface only)');
+  line('DOWN on surface — Burrow');
+  line('UP near surface — Emerge');
+  line('P — Pause  |  R — Restart  |  T — Debug');
+  blank();
+  blank();
+
+  let maxScroll = Math.max(0, y - canvas.height + 40);
+  howtoScroll = Math.min(howtoScroll, maxScroll);
+
+  ctx.restore();
+
+  // Fixed footer
+  ctx.fillStyle = 'rgba(13,10,6,0.9)';
+  ctx.fillRect(0, canvas.height - 32, canvas.width, 32);
+  let blink = Math.sin(frameCount * 0.05) > 0;
+  ctx.fillStyle = blink ? '#fff' : '#aa9977';
+  ctx.textAlign = 'center';
+  ctx.font = '11px monospace';
+  ctx.fillText('ENTER to go back  ·  ↑↓ scroll', cx, canvas.height - 12);
+
+  // Scroll indicator
+  if (maxScroll > 0) {
+    let scrollPct = howtoScroll / maxScroll;
+    let barH = canvas.height - 40;
+    let thumbH = Math.max(20, barH * (canvas.height / (y + 40)));
+    let thumbY = 4 + scrollPct * (barH - thumbH);
+    ctx.fillStyle = 'rgba(255,200,100,0.2)';
+    ctx.fillRect(canvas.width - 5, 4, 3, barH);
+    ctx.fillStyle = 'rgba(255,200,100,0.5)';
+    ctx.fillRect(canvas.width - 5, thumbY, 3, thumbH);
+  }
+
+  ctx.textAlign = 'left';
+}
+
+// -- Pause screen
+function drawPause() {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 24px monospace';
+  ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 20);
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#ccc';
+  ctx.fillText('P to resume  |  R to restart', canvas.width / 2, canvas.height / 2 + 20);
+  ctx.textAlign = 'left';
+}
+
+// -- Ending screen
+function drawEnding() {
+  let mc = P.memCount;
+  let total = W.memorabiliaCount;
+  let pct = total > 0 ? mc / total : 0; // 0 to 1
+  let title, msg, color1, color2;
+
+  if (gameTimer <= 0) {
+    title = 'Too Late';
+    msg = 'Some doors close when you take too long to knock.';
+    if (mc > 0) msg += `\nYou clutch the ${mc} memories close. Maybe next spring.`;
+    color1 = '#3a3a5a'; color2 = '#1a1a3a';
+  } else if (pct >= 1.0) {
+    title = 'Perfect Reunion';
+    msg = 'You remembered everything. Every tunnel, every moment.\nThat\'s all that ever mattered.';
+    color1 = '#ffd700'; color2 = '#ff8c00';
+  } else if (pct >= 0.75) {
+    title = 'A Beautiful Try';
+    msg = 'You didn\'t find everything... but you came looking.\nThat means more than you know.';
+    color1 = '#ffaa44'; color2 = '#cc7722';
+  } else if (pct >= 0.375) {
+    title = 'A Good Start';
+    msg = 'You remembered some things.\nMaybe with time, you\'ll remember the rest.';
+    color1 = '#aabb88'; color2 = '#667755';
+  } else {
+    title = 'Just Showing Up';
+    msg = 'You came all this way... but what did you hold onto?';
+    color1 = '#889'; color2 = '#556';
+  }
+
+  let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, color1);
+  grad.addColorStop(1, color2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Particles for perfect ending
+  if (pct >= 1.0) {
+    if (frameCount % 5 === 0) {
+      spawnParticles(Math.random() * canvas.width + camera.x, Math.random() * canvas.height + camera.y, '#ffd700', 1, 2);
+    }
+  }
+  drawParticles();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 22px monospace';
+  ctx.fillText(title, canvas.width / 2, canvas.height * 0.3);
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#eee';
+  let msgLines = msg.split('\n');
+  let my = canvas.height * 0.45;
+  for (let l of msgLines) {
+    ctx.fillText(l, canvas.width / 2, my);
+    my += 18;
+  }
+
+  ctx.fillStyle = '#ddd';
+  ctx.font = '10px monospace';
+  ctx.fillText(`Memorabilia: ${mc}/${total} (${Math.round(pct * 100)}%)`, canvas.width / 2, canvas.height * 0.7);
+  let elapsed = 600 - gameTimer;
+  let em = Math.floor(elapsed / 60), es = Math.floor(elapsed % 60);
+  ctx.fillText(`Time: ${em}m ${es}s`, canvas.width / 2, canvas.height * 0.75);
+
+  // Two bunnies together for decent endings (37.5%+)
+  if (gameTimer > 0 && pct >= 0.375) {
+    let bx = canvas.width / 2;
+    let by = canvas.height * 0.85;
+    // Bunny 1
+    ctx.fillStyle = '#f5f0e0';
+    ctx.fillRect(bx - 12, by - 8, 7, 6);
+    ctx.fillRect(bx - 11, by - 14, 5, 7);
+    ctx.fillRect(bx - 10, by - 19, 2, 6);
+    ctx.fillRect(bx - 7, by - 19, 2, 6);
+    // Bunny 2
+    ctx.fillStyle = '#ddc8a0';
+    ctx.fillRect(bx + 5, by - 8, 7, 6);
+    ctx.fillRect(bx + 6, by - 14, 5, 7);
+    ctx.fillRect(bx + 7, by - 19, 2, 6);
+    ctx.fillRect(bx + 10, by - 19, 2, 6);
+    // Heart
+    ctx.fillStyle = '#f66';
+    ctx.font = '10px serif';
+    ctx.fillText('♥', bx - 2, by - 18);
+  }
+
+  let blink = Math.sin(frameCount * 0.05) > 0;
+  if (blink) {
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px monospace';
+    ctx.fillText('PRESS ENTER TO PLAY AGAIN', canvas.width / 2, canvas.height - 20);
+  }
+  ctx.fillStyle = '#555';
+  ctx.font = '8px monospace';
+  ctx.fillText(VERSION, canvas.width / 2, canvas.height - 6);
+  ctx.textAlign = 'left';
+}
+
+// -- Game over screen
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f44';
+  ctx.font = 'bold 22px monospace';
+  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height * 0.3);
+
+  ctx.fillStyle = '#ccc';
+  ctx.font = '12px monospace';
+  let causeMsg = {
+    'oxygen': 'The darkness was warm, at least.',
+    'ferret': 'Some things underground are faster than you.',
+    'hawk': 'The sky was never your friend.',
+    'crushed': 'The earth reclaimed what was hers.',
+  }[P.deathCause] || 'You didn\'t make it.';
+  ctx.fillText(causeMsg, canvas.width / 2, canvas.height * 0.45);
+
+  ctx.fillStyle = '#aaa';
+  ctx.font = '10px monospace';
+  ctx.fillText(`Memorabilia: ${P.memCount}/${W.memorabiliaCount}`, canvas.width / 2, canvas.height * 0.6);
+  let elapsed = 600 - gameTimer;
+  let em = Math.floor(elapsed / 60), es = Math.floor(elapsed % 60);
+  ctx.fillText(`Time survived: ${em}m ${es}s`, canvas.width / 2, canvas.height * 0.65);
+
+  let blink = Math.sin(frameCount * 0.05) > 0;
+  if (blink) {
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px monospace';
+    ctx.fillText('PRESS ENTER TO TRY AGAIN', canvas.width / 2, canvas.height * 0.82);
+  }
+  ctx.fillStyle = '#555';
+  ctx.font = '8px monospace';
+  ctx.fillText(VERSION, canvas.width / 2, canvas.height * 0.95);
+  ctx.textAlign = 'left';
+}
+
+// -- Debug panel
+let debugVisible = false;
+function toggleDebug() {
+  debugVisible = !debugVisible;
+  dbg.style.display = debugVisible ? 'block' : 'none';
+  if (debugVisible) buildDebugPanel();
+}
+
+function buildDebugPanel() {
+  let html = `<h3>== DEBUG == <span style="color:#888">${VERSION}</span></h3>`;
+
+  let sliders = [
+    ['Movement', [
+      ['surfSpeed', 'Surface Speed', 0.5, 5, 0.1],
+      ['digSpeed', 'Dig Speed', 0.1, 3, 0.05],
+      ['exTunnelSpeed', 'Ex-Tunnel Speed', 0.5, 5, 0.1],
+      ['swimSpeed', 'Swim Speed', 0.1, 3, 0.05],
+    ]],
+    ['Resources', [
+      ['stamDeplSurf', 'Stam Depl (Surf)', 0, 1, 0.01],
+      ['stamDeplUG', 'Stam Depl (UG)', 0, 1, 0.01],
+      ['stamRegenSurf', 'Stam Regen (Surf)', 0, 2, 0.01],
+      ['stamRegenUG', 'Stam Regen (UG)', 0, 1, 0.01],
+      ['oxyDepl', 'O2 Depl', 0, 1, 0.01],
+      ['oxyCutoff', 'O2 Cutoff Rate', 0, 2, 0.01],
+      ['oxyDeplWater', 'O2 Depl (Water)', 0, 2, 0.01],
+      ['oxyRegen', 'O2 Regen', 0, 20, 0.1],
+    ]],
+    ['Enemies', [
+      ['hawkDangerRate', 'Hawk Danger Rate', 0, 0.1, 0.001],
+      ['hawkFreq', 'Hawk Swoop Freq', 0, 10, 0.1],
+      ['hawkGlideDur', 'Hawk Glide Dur', 0.2, 5, 0.1],
+      ['ferretSpeed', 'Ferret Speed', 0.1, 5, 0.1],
+      ['nearDeathDur', 'Near-Death Dur', 1, 30, 1],
+    ]],
+    ['Game', [
+      ['timerSpeed', 'Timer Speed', 0, 10, 0.1],
+      ['fatigueThresh', 'Fatigue Thresh %', 1, 50, 1],
+      ['jumpPower', 'Jump Power', 1, 8, 0.1],
+      ['gravity', 'Gravity', 0.01, 0.5, 0.01],
+      ['zoom', 'Camera Zoom', 0.5, 4, 0.05],
+      ['rockFallDelay', 'Rock Fall Delay (s)', 0.1, 5, 0.1],
+    ]],
+  ];
+
+  for (let [section, vars] of sliders) {
+    html += `<h3>${section}</h3>`;
+    for (let [key, label, min, max, step] of vars) {
+      html += `<label>${label} <span id="dv_${key}">${V[key].toFixed(2)}</span>
+        <input type="range" min="${min}" max="${max}" step="${step}" value="${V[key]}"
+        oninput="V['${key}']=parseFloat(this.value);document.getElementById('dv_${key}').textContent=this.value"></label>`;
+    }
+  }
+
+  // World Generation sliders (W object)
+  html += '<h3 style="color:#f90">World Gen <span style="color:#888;font-weight:normal">(apply on restart)</span></h3>';
+  let wSliders = [
+    ['rockChanceShallow', 'Rock % Shallow', 0, 0.3, 0.005],
+    ['rockChanceMid', 'Rock % Mid', 0, 0.3, 0.005],
+    ['rockChanceDeep', 'Rock % Deep', 0, 0.4, 0.005],
+    ['waterPockets', 'Water Pockets', 0, 100, 1],
+    ['waterPocketSize', 'Water Pocket Size', 1, 10, 1],
+    ['surfacePuddles', 'Surface Puddles', 0, 40, 1],
+    ['exTunnelsMid', 'Ex-Tunnels (Mid)', 0, 20, 1],
+    ['exTunnelsDeep', 'Ex-Tunnels (Deep)', 1, 20, 1],
+    ['carrotsUnderground', 'Carrots (UG)', 0, 30, 1],
+    ['ferretCount', 'Ferret Count', 0, 10, 1],
+    ['hawkCount', 'Hawk Count', 0, 10, 1],
+    ['memorabiliaCount', 'Memorabilia Count', 0, 30, 1],
+    ['memorabiliaMinLayer', 'Mem Min Layer (0-3)', 0, 3, 1],
+    ['memorabiliaMaxLayer', 'Mem Max Layer (0-3)', 0, 3, 1],
+  ];
+  for (let [key, label, min, max, step] of wSliders) {
+    let val = W[key];
+    let display = Number.isInteger(val) ? val : val.toFixed(3);
+    html += `<label>${label} <span id="dw_${key}">${display}</span>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+      oninput="W['${key}']=parseFloat(this.value);document.getElementById('dw_${key}').textContent=Number.isInteger(W['${key}'])?W['${key}']:W['${key}'].toFixed(3)"></label>`;
+  }
+  html += `<div style="color:#888;font-size:9px;margin:3px 0">Layers: 0=Surface 1=Shallow 2=Deep 3=Deep Zone</div>`;
+  html += `<button onclick="initGame();gameState='playing';startMusic();showPopup('World regenerated!',2,'#f90')" style="margin:6px 0;padding:4px 10px;background:#f90;color:#000;border:none;border-radius:4px;font:bold 11px monospace;cursor:pointer;width:100%">⟳ Regenerate World</button>`;
+
+  html += '<h3>Readouts</h3>';
+  html += '<div id="dbg_readouts"></div>';
+  dbg.innerHTML = html;
+}
+
+function updateDebugReadouts() {
+  let el = document.getElementById('dbg_readouts');
+  if (!el) return;
+  let ptx = Math.floor(P.x / T), pty = Math.floor(P.y / T);
+  let layer = pty <= SURFACE_Y ? 'Surface' : pty < SHALLOW_END ? 'Shallow' : pty < DEEP_END ? 'Deep' : 'Deep Zone';
+  el.innerHTML = `
+    <div class="readout">Danger: ${P.danger.toFixed(2)}</div>
+    <div class="readout">Pos: ${ptx}, ${pty}</div>
+    <div class="readout">Layer: ${layer}</div>
+    <div class="readout">Surface Conn: ${P._surfConn ? 'YES' : 'NO'}</div>
+    <div class="readout">Ferrets: ${ferrets.filter(f=>f.alive).length}</div>
+    <div class="readout">Fatigued: ${P.fatigued ? 'YES' : 'NO'}</div>
+    <div class="readout">NearDeath: ${P.nearDeath ? `YES (${P.nearDeathTimer.toFixed(1)}s)` : 'NO'}</div>
+    <div class="readout">Stamina: ${P.stamina.toFixed(1)}</div>
+    <div class="readout">Oxygen: ${P.oxygen.toFixed(1)}</div>
+    <div class="readout">In Water: ${P.inWater ? 'YES' : 'NO'}</div>
+    <div class="readout">Underground: ${P.underground ? 'YES' : 'NO'}</div>
+    <div class="readout">Timer: ${gameTimer.toFixed(1)}</div>
+  `;
+}
+
+// -- Main game loop
+let lastTime = 0;
+function gameLoop(time) {
+  let dt = Math.min(0.05, (time - lastTime) / 1000);
+  lastTime = time;
+  frameCount++;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (gameState === 'title') {
+    drawTitleScreen();
+  } else if (gameState === 'howto') {
+    drawHowTo();
+  } else if (gameState === 'tutorial') {
+    drawTutorial();
+  } else if (gameState === 'playing') {
+    // Update
+    gameTimer -= dt * V.timerSpeed;
+    if (gameTimer <= 0) {
+      gameTimer = 0;
+      gameState = 'ending';
+      stopMusic();
+    }
+
+    // Timer warnings
+    if (gameTimer < 60 && gameTimer > 0 && frameCount % 60 === 0) playBeep();
+
+    updatePlayer(dt);
+    if (P.dead) {
+      gameState = 'gameover';
+      stopMusic();
+    }
+    updateHawks(dt);
+    updateFerrets(dt);
+    updateParticles(dt);
+    simulateWater();
+    simulateRocks(dt);
+    updateCamera();
+    popup.timer = Math.max(0, popup.timer - dt);
+
+    // Draw world-space (zoomed)
+    ctx.save();
+    ctx.scale(V.zoom, V.zoom);
+    drawSky();
+    drawWorld();
+    drawStartBurrow();
+    drawEndBurrow();
+    drawCarrots();
+    drawMemorabilia();
+    drawFerrets();
+    drawBunny();
+    drawHawks();
+    drawParticles();
+    ctx.restore();
+
+    // Draw screen-space (native resolution)
+    drawUndergroundLighting();
+    drawScreenEffects();
+    drawHUD();
+
+    if (debugVisible) updateDebugReadouts();
+  } else if (gameState === 'paused') {
+    ctx.save();
+    ctx.scale(V.zoom, V.zoom);
+    drawSky();
+    drawWorld();
+    drawStartBurrow();
+    drawEndBurrow();
+    drawCarrots();
+    drawMemorabilia();
+    drawFerrets();
+    drawBunny();
+    drawHawks();
+    ctx.restore();
+    drawHUD();
+    drawPause();
+  } else if (gameState === 'ending') {
+    drawEnding();
+    updateParticles(dt);
+  } else if (gameState === 'gameover') {
+    drawGameOver();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// -- Start
+initGame();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
