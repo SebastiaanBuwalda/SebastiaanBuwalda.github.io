@@ -30,7 +30,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Screen container ── */
     .screen {
       position: absolute;
       inset: 0;
@@ -56,7 +55,6 @@
       pointer-events: none;
     }
 
-    /* ── Hoek (corner bracket, bottom-right) ── */
     .hoek {
       position: fixed;
       bottom: 0; right: 0;
@@ -77,7 +75,6 @@
       background: var(--purple);
     }
 
-    /* ── Logo ── */
     .wordmark {
       font-weight: 900;
       text-transform: uppercase;
@@ -90,11 +87,7 @@
       padding: 5px 14px 6px;
       display: inline-block;
     }
-    .wordmark-plain {
-      color: var(--purple);
-    }
 
-    /* ── Buttons ── */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -127,13 +120,8 @@
     .btn-green:hover  { box-shadow: 0 4px 0 var(--light-green-2); transform: translateY(2px); }
     .btn-green:active { box-shadow: 0 1px 0 var(--light-green-2); transform: translateY(5px); }
 
-    /* ════════════════════════════════
-       WELCOME SCREEN
-    ════════════════════════════════ */
-    #screen-welcome {
-      background: var(--green);
-      gap: 0;
-    }
+    /* ════ WELCOME ════ */
+    #screen-welcome { background: var(--green); gap: 0; }
     .welcome-logo { margin-bottom: 32px; font-size: clamp(32px, 7vw, 52px); }
     .welcome-circle {
       width: clamp(160px, 28vw, 220px);
@@ -186,43 +174,37 @@
       letter-spacing: 0.04em;
     }
 
-    /* ════════════════════════════════
-       QUIZ SCREEN
-    ════════════════════════════════ */
+    /* ════ QUIZ ════ */
     #screen-quiz {
       background: var(--light-green);
       justify-content: flex-start;
-      padding-top: 28px;
+      padding-top: 24px;
     }
     .quiz-topbar {
       width: 100%;
-      max-width: 580px;
+      max-width: 640px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 28px;
+      margin-bottom: 20px;
       flex-shrink: 0;
     }
     .quiz-logo { font-size: 20px; }
-    .quiz-steps {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    .quiz-steps { display: flex; gap: 5px; align-items: center; }
     .step-pip {
-      height: 10px;
-      border-radius: 5px;
+      height: 8px;
+      border-radius: 4px;
       background: var(--purple);
       transition: width 0.3s ease, opacity 0.3s ease;
     }
-    .step-pip.past    { width: 28px; opacity: 1; }
-    .step-pip.current { width: 28px; opacity: 0.6; }
-    .step-pip.future  { width: 10px; opacity: 0.2; }
+    .step-pip.past    { width: 20px; opacity: 1; }
+    .step-pip.current { width: 20px; opacity: 0.6; }
+    .step-pip.future  { width: 8px;  opacity: 0.2; }
 
     .quiz-q-wrap {
       width: 100%;
-      max-width: 580px;
-      margin-bottom: 28px;
+      max-width: 640px;
+      margin-bottom: 18px;
       flex-shrink: 0;
     }
     .quiz-qnum {
@@ -232,10 +214,10 @@
       text-transform: uppercase;
       color: var(--purple);
       opacity: 0.55;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .quiz-question {
-      font-size: clamp(22px, 4.8vw, 36px);
+      font-size: clamp(20px, 4.2vw, 32px);
       font-weight: 900;
       color: var(--purple);
       text-transform: uppercase;
@@ -245,33 +227,34 @@
 
     .quiz-grid {
       width: 100%;
-      max-width: 580px;
+      max-width: 640px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 9px;
+      padding-bottom: 24px;
     }
     .opt-btn {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 22px 12px;
+      gap: 5px;
+      padding: 12px 6px;
       border: 3px solid var(--purple);
-      border-radius: 22px;
+      border-radius: 16px;
       background: var(--white);
       color: var(--purple);
       font-family: 'Inter', sans-serif;
-      font-size: clamp(14px, 2.4vw, 18px);
+      font-size: clamp(11px, 1.8vw, 14px);
       font-weight: 700;
       cursor: pointer;
       transition: background 0.15s, color 0.15s, transform 0.1s, border-color 0.15s;
       -webkit-tap-highlight-color: transparent;
-      line-height: 1.3;
+      line-height: 1.25;
       text-align: center;
-      min-height: 96px;
+      min-height: 74px;
     }
-    .opt-btn .opt-emoji { font-size: clamp(26px, 5vw, 36px); line-height: 1; }
+    .opt-btn .opt-emoji { font-size: clamp(20px, 3.5vw, 28px); line-height: 1; }
     .opt-btn:hover { background: var(--light-green); }
     .opt-btn:active, .opt-btn.picked {
       background: var(--purple);
@@ -280,13 +263,8 @@
       transform: scale(0.96);
     }
 
-    /* ════════════════════════════════
-       LOADING SCREEN
-    ════════════════════════════════ */
-    #screen-loading {
-      background: var(--green);
-      gap: 36px;
-    }
+    /* ════ LOADING ════ */
+    #screen-loading { background: var(--green); gap: 36px; }
     .loading-logo { font-size: 28px; }
     .loading-title {
       font-size: clamp(24px, 5vw, 38px);
@@ -296,15 +274,8 @@
       letter-spacing: 0.06em;
       text-align: center;
     }
-    .loading-sub {
-      font-size: clamp(14px, 2.2vw, 17px);
-      color: var(--purple);
-      opacity: 0.65;
-    }
-    .dots-row {
-      display: flex;
-      gap: 14px;
-    }
+    .loading-sub { font-size: clamp(14px, 2.2vw, 17px); color: var(--purple); opacity: 0.65; }
+    .dots-row { display: flex; gap: 14px; }
     .ldot {
       width: 18px; height: 18px;
       border-radius: 50%;
@@ -314,18 +285,12 @@
     .ldot:nth-child(2) { animation-delay: 0.18s; }
     .ldot:nth-child(3) { animation-delay: 0.36s; }
     @keyframes boing {
-      0%, 75%, 100% { transform: translateY(0) scale(1);    opacity: 0.35; }
+      0%, 75%, 100% { transform: translateY(0) scale(1);       opacity: 0.35; }
       35%            { transform: translateY(-22px) scale(1.15); opacity: 1; }
     }
 
-    /* ════════════════════════════════
-       RESULT SCREEN
-    ════════════════════════════════ */
-    #screen-result {
-      background: var(--light-green);
-      gap: 16px;
-      padding-top: 32px;
-    }
+    /* ════ RESULT ════ */
+    #screen-result { background: var(--light-green); gap: 16px; padding-top: 32px; }
     .result-logo { font-size: 20px; flex-shrink: 0; }
     .result-eyebrow {
       font-size: 12px;
@@ -352,18 +317,15 @@
       to   { transform: scale(1);   opacity: 1; }
     }
     .result-name {
-      font-size: clamp(38px, 8vw, 60px);
+      font-size: clamp(28px, 6vw, 52px);
       font-weight: 900;
       color: var(--purple);
       text-transform: uppercase;
       letter-spacing: 0.06em;
       line-height: 1;
+      text-align: center;
     }
-    .match-score {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
+    .match-score { display: flex; gap: 6px; align-items: center; }
     .score-star { font-size: 20px; opacity: 0.25; transition: opacity 0.2s; }
     .score-star.lit { opacity: 1; }
     .result-desc {
@@ -373,6 +335,13 @@
       text-align: center;
       max-width: 480px;
       line-height: 1.55;
+    }
+    .result-plek {
+      font-size: clamp(13px, 2vw, 16px);
+      font-weight: 600;
+      color: var(--purple);
+      opacity: 0.7;
+      text-align: center;
     }
     .tags-row {
       display: flex;
@@ -396,26 +365,18 @@
       justify-content: center;
     }
 
-    /* ════════════════════════════════
-       RECEIPT SCREEN
-    ════════════════════════════════ */
-    #screen-receipt {
-      background: var(--green);
-      gap: 20px;
-    }
+    /* ════ RECEIPT ════ */
+    #screen-receipt { background: var(--green); gap: 20px; }
     .receipt-logo { font-size: 22px; }
-    .receipt-wrap {
-      filter: drop-shadow(0 8px 28px rgba(0,0,0,0.22));
-    }
+    .receipt-wrap { filter: drop-shadow(0 8px 28px rgba(0,0,0,0.22)); }
     .receipt {
       background: var(--cream);
       width: 290px;
-      padding: 24px 22px 28px;
+      padding: 24px 22px 36px;
       font-family: 'Courier New', Courier, monospace;
       clip-path: polygon(
         0 0, 100% 0,
         100% calc(100% - 10px),
-        /* zigzag bottom */
         95%  100%, 90% calc(100% - 10px),
         85%  100%, 80% calc(100% - 10px),
         75%  100%, 70% calc(100% - 10px),
@@ -427,7 +388,6 @@
         15%  100%, 10% calc(100% - 10px),
         5%   100%, 0   calc(100% - 10px)
       );
-      padding-bottom: 36px;
     }
     .rcpt-header {
       text-align: center;
@@ -435,26 +395,9 @@
       border-bottom: 1px dashed #bbb;
       margin-bottom: 14px;
     }
-    .rcpt-brand {
-      font-size: 20px;
-      font-weight: bold;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--purple);
-    }
-    .rcpt-sub {
-      font-size: 10px;
-      color: #666;
-      margin-top: 3px;
-      letter-spacing: 1px;
-    }
-    .rcpt-meta {
-      font-size: 11px;
-      color: #444;
-      display: flex;
-      justify-content: space-between;
-      margin: 3px 0;
-    }
+    .rcpt-brand { font-size: 20px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; color: var(--purple); }
+    .rcpt-sub { font-size: 10px; color: #666; margin-top: 3px; letter-spacing: 1px; }
+    .rcpt-meta { font-size: 11px; color: #444; display: flex; justify-content: space-between; margin: 3px 0; }
     .rcpt-match-box {
       margin: 14px 0;
       text-align: center;
@@ -463,17 +406,13 @@
       padding: 12px 0;
     }
     .rcpt-match-lbl { font-size: 10px; letter-spacing: 2px; color: #777; text-transform: uppercase; }
-    .rcpt-match-name { font-size: 26px; font-weight: bold; color: var(--purple); letter-spacing: 2px; margin: 4px 0 2px; }
+    .rcpt-match-name { font-size: 22px; font-weight: bold; color: var(--purple); letter-spacing: 2px; margin: 4px 0 2px; }
     .rcpt-match-emoji { font-size: 28px; }
+    .rcpt-match-detail { font-size: 10px; color: #666; margin-top: 3px; }
     .rcpt-shared-title { font-size: 10px; letter-spacing: 2px; color: #777; text-transform: uppercase; margin-bottom: 6px; }
     .rcpt-shared-item { font-size: 12px; color: #333; padding: 2px 0; }
     .rcpt-shared-item::before { content: '★ '; color: var(--purple); }
-    .rcpt-footer {
-      margin-top: 14px;
-      border-top: 1px dashed #bbb;
-      padding-top: 12px;
-      text-align: center;
-    }
+    .rcpt-footer { margin-top: 14px; border-top: 1px dashed #bbb; padding-top: 12px; text-align: center; }
     .rcpt-barcode {
       display: flex;
       justify-content: center;
@@ -482,16 +421,12 @@
       margin: 8px auto 8px;
       height: 44px;
     }
-    .rcpt-barcode span {
-      background: #222;
-      display: block;
-    }
+    .rcpt-barcode span { background: #222; display: block; }
     .rcpt-footer-txt { font-size: 9px; color: #888; letter-spacing: 1px; line-height: 1.6; }
   </style>
 </head>
 <body>
 
-<!-- ── Hoek (always bottom-right) ── -->
 <div class="hoek" aria-hidden="true">
   <div class="hoek-v"></div>
   <div class="hoek-h"></div>
@@ -501,12 +436,12 @@
 <div class="screen active" id="screen-welcome">
   <div class="wordmark welcome-logo"><span class="wordmark-box">GRENSLOOS</span></div>
   <div class="welcome-circle" aria-hidden="true">🌾</div>
-  <h1 class="welcome-tagline">Ontdek wie in Weiteveen op jou lijkt.</h1>
-  <p class="welcome-sub">Beantwoord vijf korte vragen en ontmoet jouw Weiteveense match!</p>
+  <h1 class="welcome-tagline">Wie in Weiteveen lijkt op jou?</h1>
+  <p class="welcome-sub">Beantwoord acht vragen en ontdek welke echte inwoner van Weiteveen het meest op jou lijkt!</p>
   <button class="btn btn-purple" id="btn-start">
     <span>▶</span><span>Begin de quiz</span>
   </button>
-  <p class="welcome-hint">— Druk op de knop om te starten —</p>
+  <p class="welcome-hint">— 70 Weiteveners wachten op jou —</p>
 </div>
 
 <!-- ════════ QUIZ ════════ -->
@@ -525,7 +460,7 @@
 <!-- ════════ LOADING ════════ -->
 <div class="screen" id="screen-loading" aria-live="polite">
   <div class="wordmark loading-logo"><span class="wordmark-box">GRENSLOOS</span></div>
-  <p class="loading-title">Jouw match zoeken…</p>
+  <p class="loading-title">Vergelijken met 70 Weiteveners…</p>
   <p class="loading-sub">Even geduld!</p>
   <div class="dots-row" aria-hidden="true">
     <div class="ldot"></div>
@@ -542,6 +477,7 @@
   <h2 class="result-name" id="result-name"></h2>
   <div class="match-score" id="match-score" aria-label="Overeenkomst"></div>
   <p class="result-desc" id="result-desc"></p>
+  <p class="result-plek" id="result-plek"></p>
   <div class="tags-row" id="result-tags"></div>
   <div class="result-actions">
     <button class="btn btn-purple" id="btn-receipt">
@@ -567,107 +503,252 @@
 <script>
 'use strict';
 
-/* ══════════════════════════════════════
-   DATA
-══════════════════════════════════════ */
-
 const QUESTIONS = [
   {
-    key: 'food',
-    text: 'Wat is je lievelingseten?',
+    key: 'kleur',
+    text: 'Wat is je lievelingskleur?',
     opts: [
-      { v: 'pannenkoeken', label: 'Pannenkoeken', emoji: '🥞' },
-      { v: 'stamppot',     label: 'Stamppot',     emoji: '🥘' },
-      { v: 'appeltaart',   label: 'Appeltaart',   emoji: '🍎' },
-      { v: 'bitterballen', label: 'Bitterballen', emoji: '🍟' },
+      { v: 'blauw',  label: 'Blauw',  emoji: '💙' },
+      { v: 'groen',  label: 'Groen',  emoji: '💚' },
+      { v: 'roze',   label: 'Roze',   emoji: '🩷' },
+      { v: 'paars',  label: 'Paars',  emoji: '💜' },
+      { v: 'rood',   label: 'Rood',   emoji: '❤️' },
+      { v: 'zwart',  label: 'Zwart',  emoji: '🖤' },
+      { v: 'geel',   label: 'Geel',   emoji: '💛' },
+      { v: 'oranje', label: 'Oranje', emoji: '🧡' },
+      { v: 'grijs',  label: 'Grijs',  emoji: '🩶' },
     ]
   },
   {
     key: 'tv',
-    text: 'Wat is je favoriete tv-programma?',
+    text: 'Wat is je favoriete genre tv-programma?',
     opts: [
-      { v: 'wie is de mol?',   label: 'Wie is de Mol?',   emoji: '🕵️' },
-      { v: 'gtst',             label: 'GTST',             emoji: '💬' },
-      { v: 'boer zoekt vrouw', label: 'Boer zoekt Vrouw', emoji: '🌾' },
-      { v: 'de slimste mens',  label: 'De Slimste Mens',  emoji: '🧠' },
+      { v: 'spelshow',      label: 'Spelshow',       emoji: '🎮' },
+      { v: 'detective',     label: 'Detective',      emoji: '🔍' },
+      { v: 'sport',         label: 'Sport',          emoji: '⚽' },
+      { v: 'reality',       label: 'Reality',        emoji: '🎭' },
+      { v: 'woon',          label: 'Wonen',          emoji: '🏠' },
+      { v: 'comedy',        label: 'Comedy',         emoji: '😂' },
+      { v: 'actualiteiten', label: 'Actualiteiten',  emoji: '📰' },
+      { v: 'muziek',        label: 'Muziek',         emoji: '🎵' },
+      { v: 'documentaire',  label: 'Documentaire',   emoji: '📽️' },
+      { v: 'talkshow',      label: 'Talkshow',       emoji: '💬' },
+      { v: 'romantiek',     label: 'Romantiek',      emoji: '💕' },
+      { v: 'kinderen',      label: 'Kinderprogramma',emoji: '🧸' },
+    ]
+  },
+  {
+    key: 'dier',
+    text: 'Welk dier past het beste bij jou?',
+    opts: [
+      { v: 'hond',     label: 'Hond',     emoji: '🐕' },
+      { v: 'vogel',    label: 'Vogel',    emoji: '🐦' },
+      { v: 'kat',      label: 'Kat',      emoji: '🐱' },
+      { v: 'paard',    label: 'Paard',    emoji: '🐴' },
+      { v: 'dolfijn',  label: 'Dolfijn',  emoji: '🐬' },
+      { v: 'ezel',     label: 'Ezel',     emoji: '🫏' },
+      { v: 'koe',      label: 'Koe',      emoji: '🐄' },
+      { v: 'schaap',   label: 'Schaap',   emoji: '🐑' },
+      { v: 'aap',      label: 'Aap',      emoji: '🐒' },
+      { v: 'giraf',    label: 'Giraf',    emoji: '🦒' },
+      { v: 'haai',     label: 'Haai',     emoji: '🦈' },
+      { v: 'vlinder',  label: 'Vlinder',  emoji: '🦋' },
+      { v: 'geit',     label: 'Geit',     emoji: '🐐' },
+      { v: 'leeuw',    label: 'Leeuw',    emoji: '🦁' },
+      { v: 'olifant',  label: 'Olifant',  emoji: '🐘' },
+      { v: 'eekhoorn', label: 'Eekhoorn', emoji: '🐿️' },
+    ]
+  },
+  {
+    key: 'muziek',
+    text: 'Welk soort muziek houd je het meest van?',
+    opts: [
+      { v: 'rock',    label: 'Rock',            emoji: '🎸' },
+      { v: 'metal',   label: 'Metal',           emoji: '🤘' },
+      { v: 'nl',      label: 'Nederlandstalig', emoji: '🇳🇱' },
+      { v: 'pop',     label: 'Pop',             emoji: '🎵' },
+      { v: 'folk',    label: 'Folk',            emoji: '🎻' },
+      { v: 'drentse', label: 'Drents',          emoji: '🌾' },
+      { v: 'house',   label: 'House',           emoji: '🎧' },
+      { v: 'duits',   label: 'Duits',           emoji: '🎺' },
+      { v: 'country', label: 'Country',         emoji: '🤠' },
+      { v: 'rap',     label: 'Rap',             emoji: '🎤' },
     ]
   },
   {
     key: 'hobby',
-    text: 'Wat doe je het liefst in je vrije tijd?',
+    text: 'Wat is je lievelingshobby?',
     opts: [
-      { v: 'fietsen',    label: 'Fietsen',    emoji: '🚴' },
-      { v: 'tuinieren',  label: 'Tuinieren',  emoji: '🌱' },
-      { v: 'lezen',      label: 'Lezen',      emoji: '📚' },
+      { v: 'creatief',        label: 'Creatief',         emoji: '🎨' },
+      { v: 'lezen',           label: 'Lezen',            emoji: '📚' },
+      { v: 'tuinieren',       label: 'Tuinieren',        emoji: '🌱' },
+      { v: 'wandelen',        label: 'Wandelen',         emoji: '🚶' },
+      { v: 'fietsen',         label: 'Fietsen',          emoji: '🚴' },
+      { v: 'voetbal',         label: 'Voetbal',          emoji: '⚽' },
+      { v: 'sporten',         label: 'Sporten',          emoji: '🏃' },
+      { v: 'muziekmaken',     label: 'Muziek maken',     emoji: '🎵' },
+      { v: 'fotograferen',    label: 'Fotograferen',     emoji: '📷' },
+      { v: 'puzzelen',        label: 'Puzzelen',         emoji: '🧩' },
+      { v: 'vissen',          label: 'Vissen',           emoji: '🎣' },
+      { v: 'gamen',           label: 'Gamen',            emoji: '🎮' },
+      { v: 'motor',           label: 'Motor',            emoji: '🏍️' },
+      { v: 'tvkijken',        label: 'Tv kijken',        emoji: '📺' },
+      { v: 'muziekluisteren', label: 'Muziek luisteren', emoji: '🎧' },
+      { v: 'schoonmaken',     label: 'Schoonmaken',      emoji: '🧹' },
+    ]
+  },
+  {
+    key: 'feest',
+    text: 'Wat is je favoriete feest?',
+    opts: [
+      { v: 'kerst',      label: 'Kerst',       emoji: '🎄' },
+      { v: 'oudnieuw',   label: 'Oud & Nieuw', emoji: '🎆' },
+      { v: 'carnaval',   label: 'Carnaval',    emoji: '🎭' },
+      { v: 'koningsdag', label: 'Koningsdag',  emoji: '👑' },
+      { v: 'verjaardag', label: 'Verjaardag',  emoji: '🎂' },
+      { v: 'sinterklaas',label: 'Sinterklaas', emoji: '🎅' },
+      { v: 'halloween',  label: 'Halloween',   emoji: '🎃' },
+      { v: 'pasen',      label: 'Pasen',       emoji: '🐣' },
+      { v: 'moederdag',  label: 'Moederdag',   emoji: '💐' },
+    ]
+  },
+  {
+    key: 'vakantie',
+    text: 'Waar ga je het liefst op vakantie?',
+    opts: [
+      { v: 'italie',     label: 'Italië',      emoji: '🇮🇹' },
+      { v: 'spanje',     label: 'Spanje',      emoji: '🇪🇸' },
+      { v: 'schotland',  label: 'Schotland',   emoji: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+      { v: 'duitsland',  label: 'Duitsland',   emoji: '🇩🇪' },
+      { v: 'oostenrijk', label: 'Oostenrijk',  emoji: '🇦🇹' },
+      { v: 'kroatie',    label: 'Kroatië',     emoji: '🇭🇷' },
+      { v: 'portugal',   label: 'Portugal',    emoji: '🇵🇹' },
+      { v: 'frankrijk',  label: 'Frankrijk',   emoji: '🇫🇷' },
+      { v: 'noorwegen',  label: 'Noorwegen',   emoji: '🇳🇴' },
+      { v: 'griekenland',label: 'Griekenland', emoji: '🇬🇷' },
+      { v: 'engeland',   label: 'Engeland',    emoji: '🇬🇧' },
+      { v: 'ijsland',    label: 'IJsland',     emoji: '🇮🇸' },
+      { v: 'belgie',     label: 'België',      emoji: '🇧🇪' },
+      { v: 'tsjechie',   label: 'Tsjechië',    emoji: '🇨🇿' },
+      { v: 'verre',      label: 'Verre landen',emoji: '🌍' },
+    ]
+  },
+  {
+    key: 'sport',
+    text: 'Welke sport doe jij het liefst?',
+    opts: [
+      { v: 'zwemmen',    label: 'Zwemmen',    emoji: '🏊' },
       { v: 'voetbal',    label: 'Voetbal',    emoji: '⚽' },
-    ]
-  },
-  {
-    key: 'season',
-    text: 'Wat is je favoriete seizoen?',
-    opts: [
-      { v: 'lente',  label: 'Lente',  emoji: '🌸' },
-      { v: 'zomer',  label: 'Zomer',  emoji: '☀️' },
-      { v: 'herfst', label: 'Herfst', emoji: '🍂' },
-      { v: 'winter', label: 'Winter', emoji: '❄️' },
-    ]
-  },
-  {
-    key: 'music',
-    text: 'Welk soort muziek houd je het meest van?',
-    opts: [
-      { v: 'pop',      label: 'Pop',      emoji: '🎵' },
-      { v: 'klassiek', label: 'Klassiek', emoji: '🎻' },
-      { v: 'schlager', label: 'Schlager', emoji: '🎺' },
-      { v: 'rock',     label: 'Rock',     emoji: '🎸' },
+      { v: 'wandelen',   label: 'Wandelen',   emoji: '🚶' },
+      { v: 'fietsen',    label: 'Fietsen',    emoji: '🚴' },
+      { v: 'gym',        label: 'Gym',        emoji: '🏋️' },
+      { v: 'schaatsen',  label: 'Schaatsen',  emoji: '⛸️' },
+      { v: 'hardlopen',  label: 'Hardlopen',  emoji: '🏃' },
+      { v: 'volleybal',  label: 'Volleybal',  emoji: '🏐' },
+      { v: 'dansen',     label: 'Dansen',     emoji: '💃' },
+      { v: 'yoga',       label: 'Yoga',       emoji: '🧘' },
+      { v: 'judo',       label: 'Judo',       emoji: '🥋' },
+      { v: 'skien',      label: 'Skiën',      emoji: '⛷️' },
+      { v: 'badminton',  label: 'Badminton',  emoji: '🏸' },
+      { v: 'spinning',   label: 'Spinning',   emoji: '🚲' },
+      { v: 'bowlen',     label: 'Bowlen',     emoji: '🎳' },
+      { v: 'boksen',     label: 'Boksen',     emoji: '🥊' },
+      { v: 'duiken',     label: 'Duiken',     emoji: '🤿' },
+      { v: 'wielrennen', label: 'Wielrennen', emoji: '🚵' },
+      { v: 'denksport',  label: 'Denksport',  emoji: '♟️' },
     ]
   },
 ];
 
 const PEOPLE = [
-  { name: 'Henk',    emoji: '👨‍🌾', bg: '#5c3d8f', food: 'pannenkoeken', tv: 'wie is de mol?',   hobby: 'fietsen',   season: 'zomer',  music: 'schlager' },
-  { name: 'Grietje', emoji: '🌷',   bg: '#3d7a3d', food: 'stamppot',     tv: 'boer zoekt vrouw', hobby: 'tuinieren', season: 'lente',  music: 'klassiek' },
-  { name: 'Jan',     emoji: '⚽',   bg: '#2d5a8e', food: 'bitterballen', tv: 'gtst',             hobby: 'voetbal',   season: 'herfst', music: 'pop'      },
-  { name: 'Marga',   emoji: '📚',   bg: '#7a3d5c', food: 'appeltaart',   tv: 'de slimste mens',  hobby: 'lezen',     season: 'winter', music: 'klassiek' },
-  { name: 'Klaas',   emoji: '🐄',   bg: '#5c7a2d', food: 'stamppot',     tv: 'boer zoekt vrouw', hobby: 'voetbal',   season: 'herfst', music: 'rock'     },
-  { name: 'Riet',    emoji: '🧶',   bg: '#8e4a2d', food: 'pannenkoeken', tv: 'wie is de mol?',   hobby: 'tuinieren', season: 'lente',  music: 'pop'      },
-  { name: 'Bert',    emoji: '🚴',   bg: '#2d7a7a', food: 'bitterballen', tv: 'gtst',             hobby: 'fietsen',   season: 'zomer',  music: 'rock'     },
-  { name: 'Ans',     emoji: '🌿',   bg: '#44276D', food: 'appeltaart',   tv: 'de slimste mens',  hobby: 'tuinieren', season: 'lente',  music: 'klassiek' },
-  { name: 'Piet',    emoji: '🎶',   bg: '#7a5a2d', food: 'bitterballen', tv: 'boer zoekt vrouw', hobby: 'voetbal',   season: 'zomer',  music: 'schlager' },
-  { name: 'Truus',   emoji: '📖',   bg: '#2d3d7a', food: 'stamppot',     tv: 'de slimste mens',  hobby: 'lezen',     season: 'winter', music: 'pop'      },
+  { name: 'Tanja',                   emoji: '🐕', bg: '#44276D', geb: '10 nov 1979', woon: 'Nieuw-Schoonebeek', kleur: 'paars',  tv: 'spelshow',      dier: 'hond',     muziek: 'folk',    hobby: 'creatief',        feest: 'kerst',      vakantie: 'italie',     sport: 'zwemmen',   plek: 'Bargerveen' },
+  { name: 'Arnold',          emoji: '🐕', bg: '#2d5a8e', geb: '2 feb 1976',  woon: 'Nieuw-Schoonebeek', kleur: 'blauw',  tv: 'documentaire',  dier: 'hond',     muziek: 'rock',    hobby: 'fietsen',         feest: 'koningsdag', vakantie: 'italie',     sport: 'voetbal',   plek: 'Bargerveen' },
+  { name: 'Suzanne',         emoji: '🐕', bg: '#3d7a3d', geb: '29 jan 1980', woon: 'Weiteveen',         kleur: 'groen',  tv: 'reality',       dier: 'hond',     muziek: 'rock',    hobby: 'lezen',           feest: 'kerst',      vakantie: null,         sport: 'zwemmen',   plek: 'Bargerveen' },
+  { name: 'Silvia',            emoji: '🐦', bg: '#7a4a2d', geb: '15 dec 1979', woon: 'Weiteveen',         kleur: 'rood',   tv: 'detective',     dier: 'vogel',    muziek: 'rock',    hobby: 'creatief',        feest: null,         vakantie: 'schotland',  sport: 'wandelen',  plek: 'Mijn eigen huis' },
+  { name: 'Pascal',           emoji: '🌟', bg: '#2d7a7a', geb: '8 jan 1989',  woon: 'Weiteveen',         kleur: 'geel',   tv: 'spelshow',      dier: null,       muziek: 'metal',   hobby: null,              feest: 'koningsdag', vakantie: null,         sport: 'zwemmen',   plek: 'Snackbar Joni' },
+  { name: 'Miranda',                 emoji: '🐕', bg: '#7a3d6b', geb: '20 mrt 1983', woon: 'Nieuw Schoonebeek', kleur: 'roze',   tv: 'spelshow',      dier: 'hond',     muziek: 'nl',      hobby: null,              feest: 'kerst',      vakantie: 'oostenrijk', sport: 'gym',       plek: 'Bargerveen' },
+  { name: 'Erwin',    emoji: '🐕', bg: '#5c3d8f', geb: '14 feb 1984', woon: 'Nieuw Schoonebeek', kleur: 'rood',   tv: 'sport',         dier: 'hond',     muziek: 'rock',    hobby: 'voetbal',         feest: 'carnaval',   vakantie: null,         sport: 'voetbal',   plek: 'Voetbalveld' },
+  { name: 'Richard',  emoji: '🐕', bg: '#44276D', geb: '6 mrt 1986',  woon: 'Klazienaveen',      kleur: 'blauw',  tv: 'sport',         dier: 'hond',     muziek: 'rock',    hobby: 'voetbal',         feest: 'oudnieuw',   vakantie: null,         sport: 'voetbal',   plek: 'Bargerveen' },
+  { name: 'Monique',  emoji: '🐒', bg: '#2d5a8e', geb: '6 okt 1968',  woon: 'Weiteveen',         kleur: 'rood',   tv: null,            dier: 'aap',      muziek: null,      hobby: null,              feest: 'kerst',      vakantie: 'spanje',     sport: null,        plek: null },
+  { name: 'Fred',     emoji: '🐕', bg: '#3d7a3d', geb: '27 sep 1974', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'sport',         dier: 'hond',     muziek: 'rock',    hobby: 'lezen',           feest: 'oudnieuw',   vakantie: 'portugal',   sport: 'judo',      plek: 'De Veltman' },
+  { name: 'Mirjam',            emoji: '🐕', bg: '#7a4a2d', geb: '8 jan 1974',  woon: 'Schöninghsdorf',    kleur: 'paars',  tv: 'spelshow',      dier: 'hond',     muziek: 'rock',    hobby: 'creatief',        feest: 'kerst',      vakantie: 'spanje',     sport: 'dansen',    plek: 'Mijn ouderlijk huis' },
+  { name: 'Jan',             emoji: '🫏', bg: '#2d7a7a', geb: '5 jan 1952',  woon: 'Weiteveen',         kleur: 'oranje', tv: 'sport',         dier: 'ezel',     muziek: 'rock',    hobby: 'voetbal',         feest: 'koningsdag', vakantie: 'duitsland',  sport: 'voetbal',   plek: 'Het Oosten' },
+  { name: 'Marietje',        emoji: '🐕', bg: '#7a3d6b', geb: '7 jan 1955',  woon: 'Weiteveen',         kleur: 'blauw',  tv: 'spelshow',      dier: 'hond',     muziek: 'rock',    hobby: 'puzzelen',        feest: 'kerst',      vakantie: 'duitsland',  sport: 'zwemmen',   plek: 'Mijn eigen huis' },
+  { name: 'Tineke',           emoji: '🐕', bg: '#5c3d8f', geb: '19 mei 1974', woon: 'Schoonebeek',       kleur: 'groen',  tv: 'detective',     dier: 'hond',     muziek: 'rock',    hobby: 'wandelen',        feest: 'verjaardag', vakantie: 'engeland',   sport: 'schaatsen', plek: 'Bargerveen' },
+  { name: 'Gré',            emoji: '🐴', bg: '#44276D', geb: '17 okt 1945', woon: 'Nieuw-Schoonebeek', kleur: 'blauw',  tv: 'muziek',        dier: 'paard',    muziek: 'drentse', hobby: 'creatief',        feest: 'kerst',      vakantie: 'verre',      sport: 'schaatsen', plek: 'Bargerveen' },
+  { name: 'Patricia',          emoji: '🐕', bg: '#2d5a8e', geb: '10 jan 1976', woon: 'Weiteveen',         kleur: 'roze',   tv: 'spelshow',      dier: 'hond',     muziek: 'nl',      hobby: 'wandelen',        feest: 'kerst',      vakantie: 'oostenrijk', sport: 'wandelen',  plek: 'Mijn eigen huis' },
+  { name: 'Bern',             emoji: '🐦', bg: '#3d7a3d', geb: '9 nov 1962',  woon: 'Coevorden',         kleur: 'roze',   tv: 'detective',     dier: 'vogel',    muziek: null,      hobby: 'creatief',        feest: 'moederdag',  vakantie: 'spanje',     sport: null,        plek: 'Mijn ouderlijk huis' },
+  { name: 'Karla',                   emoji: '🐬', bg: '#7a4a2d', geb: '15 sep 1969', woon: 'Weiteveen',         kleur: 'groen',  tv: 'woon',          dier: 'dolfijn',  muziek: 'house',   hobby: 'creatief',        feest: 'kerst',      vakantie: null,         sport: 'denksport', plek: 'Mijn eigen huis' },
+  { name: 'Mirjam',          emoji: '🐱', bg: '#2d7a7a', geb: '12 okt 1953', woon: 'Weiteveen',         kleur: 'groen',  tv: 'detective',     dier: 'kat',      muziek: 'rock',    hobby: 'tuinieren',       feest: 'kerst',      vakantie: 'frankrijk',  sport: 'fietsen',   plek: 'Wollegras' },
+  { name: 'Petra',         emoji: '🐕', bg: '#7a3d6b', geb: '13 apr 1980', woon: 'Weiteveen',         kleur: 'roze',   tv: null,            dier: 'hond',     muziek: 'nl',      hobby: 'creatief',        feest: 'verjaardag', vakantie: null,         sport: 'fietsen',   plek: null },
+  { name: 'Anne-Marie',        emoji: '🐕', bg: '#5c3d8f', geb: '17 mei 1950', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'woon',          dier: 'hond',     muziek: 'pop',     hobby: 'tuinieren',       feest: 'kerst',      vakantie: 'italie',     sport: 'skien',     plek: 'De kerk' },
+  { name: 'Lammie',            emoji: '🐦', bg: '#44276D', geb: '13 jul 1976', woon: 'Weiteveen',         kleur: 'groen',  tv: 'spelshow',      dier: 'vogel',    muziek: 'duits',   hobby: 'schoonmaken',     feest: 'kerst',      vakantie: null,         sport: 'zwemmen',   plek: 'Het Palet' },
+  { name: 'Annie',             emoji: '🐑', bg: '#2d5a8e', geb: '11 feb 1953', woon: 'Weiteveen',         kleur: 'rood',   tv: 'actualiteiten', dier: 'schaap',   muziek: null,      hobby: 'lezen',           feest: 'kerst',      vakantie: 'frankrijk',  sport: 'gym',       plek: 'Mijn eigen huis' },
+  { name: 'Manu',           emoji: '🐱', bg: '#3d7a3d', geb: '28 jan 1973', woon: 'Weiteveen',         kleur: 'groen',  tv: 'detective',     dier: 'kat',      muziek: 'duits',   hobby: 'fotograferen',    feest: 'carnaval',   vakantie: 'griekenland',sport: 'bowlen',    plek: 'Mijn eigen huis' },
+  { name: 'Karin',     emoji: '🐬', bg: '#7a4a2d', geb: '28 dec 1981', woon: 'Nieuw-Schoonebeek', kleur: 'groen',  tv: 'muziek',        dier: 'dolfijn',  muziek: 'rock',    hobby: 'creatief',        feest: 'oudnieuw',   vakantie: 'kroatie',    sport: 'hardlopen', plek: 'Het Zusterhuis' },
+  { name: 'Liesette',        emoji: '🐴', bg: '#2d7a7a', geb: '13 sep 1983', woon: 'Klazienaveen',      kleur: 'paars',  tv: 'spelshow',      dier: 'paard',    muziek: 'rock',    hobby: 'lezen',           feest: 'kerst',      vakantie: 'kroatie',    sport: 'spinning',  plek: 'Het Bargerveen' },
+  { name: 'Daniëlle',           emoji: '🐴', bg: '#7a3d6b', geb: '23 aug 2000', woon: 'Weiteveen',         kleur: 'groen',  tv: 'detective',     dier: 'paard',    muziek: 'rock',    hobby: 'creatief',        feest: 'carnaval',   vakantie: 'schotland',  sport: 'volleybal', plek: 'Mijn eigen huis' },
+  { name: 'Charlene',       emoji: '🦈', bg: '#5c3d8f', geb: '9 sep 2000',  woon: 'Zwartemeer',        kleur: 'paars',  tv: 'detective',     dier: 'haai',     muziek: 'metal',   hobby: 'lezen',           feest: 'carnaval',   vakantie: 'schotland',  sport: 'zwemmen',   plek: 'Mijn eigen huis' },
+  { name: 'Andrea',             emoji: '🐕', bg: '#44276D', geb: '21 jan 1971', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'comedy',        dier: 'hond',     muziek: 'country', hobby: 'tuinieren',       feest: 'carnaval',   vakantie: 'schotland',  sport: 'voetbal',   plek: 'Mijn eigen huis' },
+  { name: 'Rosanne',           emoji: '🦒', bg: '#2d5a8e', geb: '4 feb 1997',  woon: 'Weiteveen',         kleur: 'roze',   tv: 'spelshow',      dier: 'giraf',    muziek: 'nl',      hobby: 'sporten',         feest: 'sinterklaas',vakantie: null,         sport: 'zwemmen',   plek: 'Mijn eigen huis' },
+  { name: 'Maree',    emoji: '🐱', bg: '#3d7a3d', geb: '6 okt 1992',  woon: 'Erica',             kleur: 'zwart',  tv: 'detective',     dier: 'kat',      muziek: 'pop',     hobby: 'creatief',        feest: 'kerst',      vakantie: 'kroatie',    sport: 'fietsen',   plek: 'De schaapskooi' },
+  { name: 'Katinka',     emoji: '🐕', bg: '#7a4a2d', geb: '5 jul 1977',  woon: 'Veenoord',          kleur: 'paars',  tv: null,            dier: 'hond',     muziek: 'rock',    hobby: 'tuinieren',       feest: 'kerst',      vakantie: 'ijsland',    sport: 'yoga',      plek: 'Bargerveen' },
+  { name: 'Karin',        emoji: '🐕', bg: '#2d7a7a', geb: '15 dec 1965', woon: 'Weiteveen',         kleur: 'roze',   tv: null,            dier: 'hond',     muziek: null,      hobby: 'creatief',        feest: 'pasen',      vakantie: null,         sport: 'wandelen',  plek: 'Mijn eigen huis' },
+  { name: 'Monique', emoji: '🐄', bg: '#7a3d6b', geb: '17 feb 1964', woon: 'Nieuw-Schoonebeek', kleur: 'groen',  tv: null,            dier: 'koe',      muziek: 'rock',    hobby: 'wandelen',        feest: 'kerst',      vakantie: 'frankrijk',  sport: 'volleybal', plek: 'Het Oosten' },
+  { name: 'Tineke',         emoji: '🌟', bg: '#5c3d8f', geb: '21 feb 1968', woon: 'Weiteveen',         kleur: 'roze',   tv: 'romantiek',     dier: null,       muziek: 'duits',   hobby: 'lezen',           feest: 'kerst',      vakantie: null,         sport: 'gym',       plek: 'Mijn eigen huis' },
+  { name: 'Sandra',        emoji: '🐴', bg: '#44276D', geb: '5 feb 1965',  woon: 'Amsterdam',         kleur: 'blauw',  tv: 'actualiteiten', dier: 'paard',    muziek: 'rock',    hobby: 'wandelen',        feest: 'koningsdag', vakantie: 'frankrijk',  sport: 'schaatsen', plek: 'Bargerveen' },
+  { name: 'Carla',                   emoji: '🐕', bg: '#2d5a8e', geb: '20 mrt 1959', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'sport',         dier: 'hond',     muziek: 'pop',     hobby: 'creatief',        feest: null,         vakantie: 'spanje',     sport: 'voetbal',   plek: 'Bargerveen' },
+  { name: 'Annemiek',        emoji: '🦋', bg: '#3d7a3d', geb: '1 nov 1984',  woon: 'Nieuwlande',        kleur: 'groen',  tv: 'woon',          dier: 'vlinder',  muziek: 'rock',    hobby: 'muziekmaken',     feest: 'kerst',      vakantie: 'noorwegen',  sport: 'schaatsen', plek: 'Bargerveen' },
+  { name: 'Mieke',           emoji: '🐐', bg: '#7a4a2d', geb: '28 mei 1935', woon: 'Weiteveen',         kleur: 'oranje', tv: 'woon',          dier: 'geit',     muziek: null,      hobby: 'creatief',        feest: null,         vakantie: null,         sport: 'gym',       plek: 'Mijn eigen huis' },
+  { name: 'Margo',         emoji: '🫏', bg: '#2d7a7a', geb: '5 mrt 1966',  woon: 'Sappemeer',         kleur: 'groen',  tv: 'spelshow',      dier: 'ezel',     muziek: 'rock',    hobby: 'tuinieren',       feest: 'verjaardag', vakantie: 'frankrijk',  sport: 'wandelen',  plek: 'Het Oosten' },
+  { name: 'Mireille',       emoji: '🌟', bg: '#7a3d6b', geb: '29 okt 1980', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'talkshow',      dier: null,       muziek: 'house',   hobby: null,              feest: 'koningsdag', vakantie: 'belgie',     sport: 'hardlopen', plek: 'Mijn eigen huis' },
+  { name: 'Janneke',                 emoji: '🐕', bg: '#5c3d8f', geb: '12 mei 1990', woon: 'Lutten',            kleur: 'blauw',  tv: 'comedy',        dier: 'hond',     muziek: 'metal',   hobby: 'motor',           feest: 'oudnieuw',   vakantie: 'oostenrijk', sport: 'zwemmen',   plek: 'Tuin van Vitez' },
+  { name: 'Paula',          emoji: '🐕', bg: '#44276D', geb: '21 dec 1977', woon: 'Nieuw-Schoonebeek', kleur: 'groen',  tv: 'spelshow',      dier: 'hond',     muziek: 'folk',    hobby: 'lezen',           feest: 'kerst',      vakantie: 'tsjechie',   sport: 'badminton', plek: 'Het Palet' },
+  { name: 'Karin',     emoji: '🐿️', bg: '#2d5a8e', geb: '26 dec 1981', woon: 'Nieuw-Schoonebeek', kleur: 'groen',  tv: 'talkshow',      dier: 'eekhoorn', muziek: 'rock',    hobby: 'creatief',        feest: 'oudnieuw',   vakantie: 'kroatie',    sport: 'hardlopen', plek: 'Het Zusterhuis' },
+  { name: 'Ludo',           emoji: '🐦', bg: '#3d7a3d', geb: '22 nov 1960', woon: 'Weiteveen',         kleur: 'groen',  tv: null,            dier: 'vogel',    muziek: 'rock',    hobby: 'muziekmaken',     feest: 'pasen',      vakantie: 'duitsland',  sport: 'wielrennen', plek: 'Bargerveen' },
+  { name: 'Esther',       emoji: '🐦', bg: '#7a4a2d', geb: '4 jun 1966',  woon: 'Weiteveen',         kleur: 'geel',   tv: null,            dier: 'vogel',    muziek: 'rock',    hobby: 'muziekmaken',     feest: null,         vakantie: 'duitsland',  sport: 'wandelen',  plek: 'Mijn eigen huis' },
+  { name: 'Alida',           emoji: '🐦', bg: '#2d7a7a', geb: '29 apr 2026', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'detective',     dier: 'vogel',    muziek: null,      hobby: 'creatief',        feest: 'oudnieuw',   vakantie: null,         sport: 'gym',       plek: 'Mijn eigen huis' },
+  { name: 'Angelique',               emoji: '🐕', bg: '#7a3d6b', geb: '18 apr 1966', woon: 'Klazienaveen',      kleur: 'paars',  tv: null,            dier: 'hond',     muziek: 'country', hobby: 'wandelen',        feest: null,         vakantie: null,         sport: 'wandelen',  plek: 'Bargerveen' },
+  { name: 'Lonneke',            emoji: '🐕', bg: '#5c3d8f', geb: '1 jun 1986',  woon: 'Emmer-Compascuum',  kleur: 'blauw',  tv: 'detective',     dier: 'hond',     muziek: null,      hobby: 'sporten',         feest: 'oudnieuw',   vakantie: 'oostenrijk', sport: 'gym',       plek: 'Tuin van Vitez' },
+  { name: 'Hein',              emoji: '🐕', bg: '#44276D', geb: '20 mei 1947', woon: 'Klazienaveen',      kleur: 'blauw',  tv: 'sport',         dier: 'hond',     muziek: 'nl',      hobby: 'vissen',          feest: 'kerst',      vakantie: null,         sport: 'fietsen',   plek: 'Mijn oude huis' },
+  { name: 'Annie',      emoji: '🐕', bg: '#2d5a8e', geb: '12 nov 1949', woon: 'Klazienaveen',      kleur: 'zwart',  tv: 'spelshow',      dier: 'hond',     muziek: 'nl',      hobby: 'vissen',          feest: 'kerst',      vakantie: null,         sport: 'dansen',    plek: 'Mijn oude huis' },
+  { name: 'Lyjanne',          emoji: '🐕', bg: '#3d7a3d', geb: '20 okt 1961', woon: 'Nieuw-Schoonebeek', kleur: 'blauw',  tv: 'spelshow',      dier: 'hond',     muziek: 'rock',    hobby: 'creatief',        feest: 'kerst',      vakantie: 'duitsland',  sport: 'wandelen',  plek: 'De stilte plek' },
+  { name: 'Petra',       emoji: '🐕', bg: '#7a4a2d', geb: '17 aug 1973', woon: 'Nieuw-Dordrecht',   kleur: 'groen',  tv: 'spelshow',      dier: 'hond',     muziek: 'rock',    hobby: 'lezen',           feest: 'verjaardag', vakantie: null,         sport: 'yoga',      plek: 'Bargerveen' },
+  { name: 'Sylvia',           emoji: '🐕', bg: '#2d7a7a', geb: '15 jul 1965', woon: 'Weiteveen',         kleur: 'roze',   tv: 'sport',         dier: 'hond',     muziek: 'drentse', hobby: 'tuinieren',       feest: null,         vakantie: null,         sport: 'voetbal',   plek: 'RK Kerkhof' },
+  { name: 'Yvonne',           emoji: '🐕', bg: '#7a3d6b', geb: '10 mei 1965', woon: 'Nieuw-Schoonebeek', kleur: 'groen',  tv: 'detective',     dier: 'hond',     muziek: 'nl',      hobby: 'creatief',        feest: null,         vakantie: null,         sport: 'volleybal', plek: 'Wollegras' },
+  { name: 'Kyan',                    emoji: '🦁', bg: '#5c3d8f', geb: '26 jul 2005', woon: 'Weiteveen',         kleur: 'rood',   tv: null,            dier: 'leeuw',    muziek: null,      hobby: 'sporten',         feest: 'kerst',      vakantie: 'spanje',     sport: 'gym',       plek: 'Het Zusterhuis' },
+  { name: 'Hamse',            emoji: '🐕', bg: '#44276D', geb: '15 mrt 1986', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'detective',     dier: 'hond',     muziek: 'rap',     hobby: 'sporten',         feest: 'oudnieuw',   vakantie: 'verre',      sport: 'gym',       plek: null },
+  { name: 'Manon',                   emoji: '🐴', bg: '#2d5a8e', geb: '26 jan 2000', woon: 'Weiteveen',         kleur: 'paars',  tv: null,            dier: 'paard',    muziek: 'rock',    hobby: 'gamen',           feest: 'halloween',  vakantie: 'italie',     sport: 'zwemmen',   plek: 'De schaapskooi' },
+  { name: 'Ilias',                   emoji: '🐦', bg: '#3d7a3d', geb: '25 nov 1988', woon: 'Weiteveen',         kleur: 'rood',   tv: 'detective',     dier: 'vogel',    muziek: 'nl',      hobby: 'muziekluisteren', feest: 'kerst',      vakantie: 'spanje',     sport: 'boksen',    plek: 'De Schaapskooi' },
+  { name: 'Michiel',             emoji: '🐕', bg: '#7a4a2d', geb: '10 nov 1974', woon: 'Weiteveen',         kleur: 'zwart',  tv: 'detective',     dier: 'hond',     muziek: 'rock',    hobby: 'muziekmaken',     feest: 'kerst',      vakantie: 'verre',      sport: 'duiken',    plek: 'Mijn eigen huis' },
+  { name: 'Johan',                   emoji: '🐱', bg: '#2d7a7a', geb: '21 mei 1966', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'detective',     dier: 'kat',      muziek: 'nl',      hobby: 'tvkijken',        feest: 'kerst',      vakantie: 'kroatie',    sport: 'volleybal', plek: 'Mijn eigen huis' },
+  { name: 'Allard',                  emoji: '🐄', bg: '#7a3d6b', geb: '14 sep 1984', woon: 'Weiteveen',         kleur: 'geel',   tv: 'reality',       dier: 'koe',      muziek: 'nl',      hobby: 'fietsen',         feest: 'carnaval',   vakantie: null,         sport: 'voetbal',   plek: 'Het Palet' },
+  { name: 'Erik',                    emoji: '🐕', bg: '#5c3d8f', geb: '1 dec 1969',  woon: 'Weiteveen',         kleur: 'grijs',  tv: 'actualiteiten', dier: 'hond',     muziek: 'rock',    hobby: 'vissen',          feest: 'kerst',      vakantie: 'oostenrijk', sport: null,        plek: null },
+  { name: 'Luciano',                 emoji: '🐦', bg: '#44276D', geb: '6 nov 2003',  woon: 'Weiteveen',         kleur: 'zwart',  tv: 'actualiteiten', dier: 'vogel',    muziek: 'rap',     hobby: 'fietsen',         feest: 'oudnieuw',   vakantie: 'portugal',   sport: 'fietsen',   plek: 'Bargerveen' },
+  { name: 'Carlito',                 emoji: '🌟', bg: '#2d5a8e', geb: '24 mei 1984', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'sport',         dier: null,       muziek: 'rap',     hobby: 'voetbal',         feest: 'kerst',      vakantie: 'verre',      sport: 'voetbal',   plek: null },
+  { name: 'Angelo',                  emoji: '🐕', bg: '#3d7a3d', geb: '21 aug 1974', woon: 'Weiteveen',         kleur: 'groen',  tv: 'reality',       dier: 'hond',     muziek: 'nl',      hobby: 'creatief',        feest: 'verjaardag', vakantie: 'italie',     sport: 'volleybal', plek: 'Het Zusterhuis' },
+  { name: 'Erik',                    emoji: '🐱', bg: '#7a4a2d', geb: '24 apr 1969', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'reality',       dier: 'kat',      muziek: 'nl',      hobby: 'tvkijken',        feest: 'verjaardag', vakantie: null,         sport: 'voetbal',   plek: 'Mijn eigen huis' },
+  { name: 'Rico',                    emoji: '🐘', bg: '#2d7a7a', geb: '29 okt 1989', woon: 'Weiteveen',         kleur: 'paars',  tv: 'kinderen',      dier: 'olifant',  muziek: 'metal',   hobby: 'tvkijken',        feest: 'kerst',      vakantie: 'griekenland',sport: 'wandelen',  plek: 'Het Palet' },
+  { name: 'Freddy',                  emoji: '🐱', bg: '#7a3d6b', geb: '15 jul 1994', woon: 'Weiteveen',         kleur: 'blauw',  tv: 'comedy',        dier: 'kat',      muziek: 'rap',     hobby: 'sporten',         feest: 'oudnieuw',   vakantie: 'frankrijk',  sport: 'gym',       plek: 'Het Palet' },
+  { name: 'Annemarieke',             emoji: '🐦', bg: '#5c3d8f', geb: '28 jan 1973', woon: 'Weiteveen',         kleur: 'blauw',  tv: null,            dier: 'vogel',    muziek: null,      hobby: 'fietsen',         feest: 'verjaardag', vakantie: null,         sport: 'fietsen',   plek: 'Mijn eigen huis' },
 ];
-
-/* ══════════════════════════════════════
-   STATE
-══════════════════════════════════════ */
 
 let currentQ   = 0;
 let answers    = {};
 let match      = null;
 let quizNumber = 0;
 
-/* ══════════════════════════════════════
-   SCREEN MANAGEMENT
-══════════════════════════════════════ */
-
 function showScreen(id) {
-  const screens = document.querySelectorAll('.screen');
-  screens.forEach(s => {
+  document.querySelectorAll('.screen').forEach(s => {
     if (s.classList.contains('active')) {
       s.classList.remove('active');
       s.classList.add('exit');
-      const el = s;
-      el.addEventListener('transitionend', () => el.classList.remove('exit'), { once: true });
+      s.addEventListener('transitionend', () => s.classList.remove('exit'), { once: true });
     }
   });
   const next = document.getElementById(id);
-  // Small delay so exit transition is visible
   requestAnimationFrame(() => requestAnimationFrame(() => next.classList.add('active')));
 }
-
-/* ══════════════════════════════════════
-   QUIZ
-══════════════════════════════════════ */
 
 function startQuiz() {
   currentQ   = 0;
@@ -680,19 +761,14 @@ function startQuiz() {
 function renderQuestion() {
   const q = QUESTIONS[currentQ];
 
-  // Steps
-  const steps = document.getElementById('quiz-steps');
-  steps.innerHTML = QUESTIONS.map((_, i) => {
+  document.getElementById('quiz-steps').innerHTML = QUESTIONS.map((_, i) => {
     const cls = i < currentQ ? 'past' : i === currentQ ? 'current' : 'future';
     return `<div class="step-pip ${cls}" aria-hidden="true"></div>`;
   }).join('');
 
-  // Number + question
-  document.getElementById('quiz-qnum').textContent =
-    `Vraag ${currentQ + 1} van ${QUESTIONS.length}`;
+  document.getElementById('quiz-qnum').textContent = `Vraag ${currentQ + 1} van ${QUESTIONS.length}`;
   document.getElementById('quiz-question').textContent = q.text.toUpperCase();
 
-  // Options (fade in)
   const grid = document.getElementById('quiz-grid');
   grid.style.opacity = '0';
   grid.style.pointerEvents = '';
@@ -713,12 +789,9 @@ document.getElementById('quiz-grid').addEventListener('click', e => {
   if (!btn) return;
 
   btn.classList.add('picked');
-  // Prevent double-tap
   document.getElementById('quiz-grid').style.pointerEvents = 'none';
 
-  const value = btn.dataset.value;
-  const key   = QUESTIONS[currentQ].key;
-  answers[key] = value;
+  answers[QUESTIONS[currentQ].key] = btn.dataset.value;
 
   setTimeout(() => {
     currentQ++;
@@ -731,92 +804,74 @@ document.getElementById('quiz-grid').addEventListener('click', e => {
   }, 320);
 });
 
-/* ══════════════════════════════════════
-   MATCHING
-══════════════════════════════════════ */
-
 function findMatch() {
   showScreen('screen-loading');
-
   setTimeout(() => {
     let best = null, bestScore = -1;
-
     for (const person of PEOPLE) {
       let score = 0;
       for (const key of Object.keys(answers)) {
-        if (person[key] === answers[key]) score++;
+        if (person[key] !== null && person[key] === answers[key]) score++;
       }
       if (score > bestScore) { bestScore = score; best = person; }
     }
-
     match = best;
     buildResult(bestScore);
     showScreen('screen-result');
   }, 2400);
 }
 
-/* ══════════════════════════════════════
-   RESULT
-══════════════════════════════════════ */
-
 function buildResult(score) {
   const p = match;
 
-  // Portrait
   const portrait = document.getElementById('result-portrait');
   portrait.textContent = p.emoji;
   portrait.style.background = p.bg;
 
-  // Name
   document.getElementById('result-name').textContent = p.name.toUpperCase();
 
-  // Stars (out of 5)
+  const stars = Math.round(score / QUESTIONS.length * 5);
   const starsEl = document.getElementById('match-score');
   starsEl.innerHTML = Array.from({ length: 5 }, (_, i) =>
-    `<span class="score-star ${i < score ? 'lit' : ''}" aria-hidden="true">★</span>`
+    `<span class="score-star ${i < stars ? 'lit' : ''}" aria-hidden="true">★</span>`
   ).join('');
-  starsEl.setAttribute('aria-label', `${score} van 5 overeenkomsten`);
+  starsEl.setAttribute('aria-label', `${stars} van 5 sterren`);
 
-  // Shared interests
   const shared = QUESTIONS
-    .filter(q => p[q.key] === answers[q.key])
+    .filter(q => p[q.key] !== null && p[q.key] === answers[q.key])
     .map(q => q.opts.find(o => o.v === p[q.key]));
 
-  // Description
   let desc;
   if (shared.length === 0) {
     desc = `Jullie zijn elkaars tegenpolen — maar tegengestelden trekken elkaar aan!`;
   } else {
     const labels = shared.map(o => o.label.toLowerCase());
     if (labels.length === 1) {
-      desc = `Jij en ${p.name} houden allebei van ${labels[0]}!`;
+      desc = `Jij en ${p.name.split(' ')[0]} hebben allebei een voorkeur voor ${labels[0]}!`;
     } else {
       const last = labels.pop();
-      desc = `Jij en ${p.name} houden allebei van ${labels.join(', ')} en ${last}!`;
+      desc = `Jij en ${p.name.split(' ')[0]} houden allebei van ${labels.join(', ')} en ${last}!`;
     }
   }
   document.getElementById('result-desc').textContent = desc;
 
-  // Tags
+  const plekEl = document.getElementById('result-plek');
+  plekEl.textContent = p.plek ? `📍 Favoriete plek in Weiteveen: ${p.plek}` : '';
+
   document.getElementById('result-tags').innerHTML =
     shared.map(o => `<span class="tag">${o.emoji} ${o.label}</span>`).join('');
 }
 
-/* ══════════════════════════════════════
-   RECEIPT
-══════════════════════════════════════ */
-
 function buildReceipt() {
-  const p      = match;
-  const now    = new Date();
-  const date   = now.toLocaleDateString('nl-NL');
-  const time   = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  const p   = match;
+  const now = new Date();
+  const date = now.toLocaleDateString('nl-NL');
+  const time = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
 
   const shared = QUESTIONS
-    .filter(q => p[q.key] === answers[q.key])
+    .filter(q => p[q.key] !== null && p[q.key] === answers[q.key])
     .map(q => q.opts.find(o => o.v === p[q.key]));
 
-  // Random-width barcode bars
   const bars = Array.from({ length: 32 }, () => {
     const w = [1,2,2,3,4][Math.floor(Math.random()*5)];
     const h = Math.floor(Math.random() * 20) + 24;
@@ -836,39 +891,25 @@ function buildReceipt() {
       <div class="rcpt-match-lbl">Jouw Weiteveense match</div>
       <div class="rcpt-match-emoji">${p.emoji}</div>
       <div class="rcpt-match-name">${p.name.toUpperCase()}</div>
+      ${p.geb  ? `<div class="rcpt-match-detail">🎂 ${p.geb}</div>`  : ''}
+      ${p.woon ? `<div class="rcpt-match-detail">🏠 ${p.woon}</div>` : ''}
+      ${p.plek ? `<div class="rcpt-match-detail">📍 ${p.plek}</div>` : ''}
     </div>
     ${shared.length > 0 ? `
-      <div class="rcpt-shared-title">Gedeelde interesses</div>
+      <div class="rcpt-shared-title">Gedeelde voorkeuren</div>
       ${shared.map(o => `<div class="rcpt-shared-item">${o.label}</div>`).join('')}
     ` : `<div style="font-size:11px;color:#888;text-align:center;padding:8px 0">Jullie zijn elkaars tegenpolen!</div>`}
     <div class="rcpt-footer">
       <div class="rcpt-barcode">${bars}</div>
-      <div class="rcpt-footer-txt">
-        CULTUUR VERBINDT ONS<br>
-        stichting-grensloos.nl
-      </div>
+      <div class="rcpt-footer-txt">CULTUUR VERBINDT ONS<br>stichting-grensloos.nl</div>
     </div>
   `;
 }
 
-/* ══════════════════════════════════════
-   WIRE-UP BUTTONS
-══════════════════════════════════════ */
-
 document.getElementById('btn-start').addEventListener('click', startQuiz);
-
-document.getElementById('btn-receipt').addEventListener('click', () => {
-  buildReceipt();
-  showScreen('screen-receipt');
-});
-
-document.getElementById('btn-restart-result').addEventListener('click', () => {
-  showScreen('screen-welcome');
-});
-
-document.getElementById('btn-restart-receipt').addEventListener('click', () => {
-  showScreen('screen-welcome');
-});
+document.getElementById('btn-receipt').addEventListener('click', () => { buildReceipt(); showScreen('screen-receipt'); });
+document.getElementById('btn-restart-result').addEventListener('click', () => showScreen('screen-welcome'));
+document.getElementById('btn-restart-receipt').addEventListener('click', () => showScreen('screen-welcome'));
 </script>
 </body>
 </html>
